@@ -1,0 +1,182 @@
+//-----------------------------------------------------------------------------
+// R's Auto Accompaniment//-----------------------------------------------------------------------------
+/*
+	Patterns
+	- 1-8 - num of note in chord from bottom to top
+	- 9 - whole chord
+	- 13 - 20 - num of note in chord from bottom to top transposed +octave
+	- -11 - -4 - num of note in chord from bottom to top transposed -octave
+	- 0 - pause
+	- 21+ - exact pitch
+	- -(pitch*12 + note) - note in chord from bottom to top transposed down to pitch
+	- empty pattern - no repeat, just push
+
+	Items per beat
+
+	Start at beat
+
+	Length of beats
+
+	Threshold = 0.5
+*/
+
+var NeedsTimingInfo = true;
+
+var patternValues = [
+  [1, 3, 13, 14, 13, 3],
+  [9, 9, 9, 9],
+  [],
+  [1, 2, 3, 2],
+  [1, 2, 3, 2, 13, 3, 2, 3],
+  [36, 36, 36, 36],
+  [36, 0, 38, 40, 0, 40, 38, 0],
+  [-11, 0, 0, 0],
+  [0, 0, 9, 0, -(5*12 + 1), -(3*12 + 1), 9, 0 ],
+];
+var itemsPerBeatValues = [0.125, 0.25, 0.5, 1, 2, 4, 8];
+
+var activeNotes = []; // Currently pressed keys
+var playingNotes = [];// To play when hand not holds keys
+var started = false;
+var stopRequested = false;
+var start = 0; // beat position when performance started
+var notesCountToStart = 3;
+
+function getNoteIndexAndShift(patternValue) { // 0-7 - note index, -1 - chord
+  if (patternValue > 0 && patternValue < 9) {
+    return { index: patternValue -1, shift: 0 };
+  }
+  if (patternValue == 9) {
+    return { index: -1, shift: 0 };
+  }
+  if (patternValue > 12 && patternValue < 20) {
+    return { index: patternValue - 12, shift: 12 };
+  }
+  if (patternValue > -12 && patternValue < -3) {
+    return { index: patternValue + 12, shift: -12 };
+  }
+  if (patternValue < -11) {
+    var pitch = Math.ceil(patternValue / 12);
+    return { index: 0 - (patternValue % 12) -  1, shift: pitch };
+  }
+  return { index: -1, shift: 0 };
+}
+
+function HandleMIDI(event) {
+  if (event instanceof NoteOn) {
+
+
+    activeNotes.push(new NoteOn(event));
+    
+    if (activeNotes.length > 1) {
+      activeNotes.sort(sortByPitchAscending);
+    }
+
+    if (activeNotes.length >= notesCountToStart && !started) {
+      started = true;
+      stopRequested = false;
+      start = event.beatPos;
+      playingNotes = activeNotes.slice(0); 
+    }
+  }
+
+  if (event instanceof NoteOff) {
+    var noteIndex = activeNotes.findIndex(n => n.pitch == event.pitch);
+    if (noteIndex > -1) {
+      activeNotes.splice(noteIndex, 1);
+    }
+    if (activeNotes.length < notesCountToStart) {
+      stopRequested = true;
+    }
+  }
+
+}
+
+
+function sortByPitchAscending(a,b) {
+  if (a.pitch < b.pitch) return -1;
+  if (a.pitch > b.pitch) return 1;
+  return 0;
+}
+
+var patternNotesCount = 0;
+
+function getNoteOn(patternValue) {
+  if (patternValue > 20) {
+    var noteOn = new NoteOn;
+    noteOn.pitch = patternValue;
+    return noteOn;
+  } else {
+    var indexAndShift = getNoteIndexAndShift(patternValue);
+    if (indexAndShift.index != -1) {
+      var noteOn = new NoteOn(playingNotes[indexAndShift.index]);
+      noteOn.pitch = noteOn.pitch + indexAndShift.shift;
+      return noteOn;
+    }
+  }
+}
+
+function ProcessMIDI() {
+  // Get timing information from the host application
+  var musicInfo = GetTimingInfo();
+
+  if (started) {
+    var pattern = patternValues[GetParameter("Pattern")];
+
+    var blockStart = musicInfo.blockStartBeat;
+    var blockEnd = musicInfo.blockEndBeat;
+
+    var noteLengthPercent = GetParameter("Note length, %");
+    var itemsPerBeat = itemsPerBeatValues[GetParameter("Items per bit")];
+    var noteLength = 1 / itemsPerBeat * noteLengthPercent / 100;
+
+    var passedBeats = blockStart - start;
+    var passedStepsInt = Math.floor(passedBeats * itemsPerBeat);
+    var nextStepInt = passedStepsInt + 1;
+    var nextBeat = start + nextStepInt / itemsPerBeat;
+    var nextStepIndex = nextStepInt % pattern.length;
+
+
+    if (blockStart <= nextBeat && nextBeat < blockEnd) {
+      // Trace("passedStepsInt=" + passedStepsInt + " nextStepIndex=" + nextStepIndex + " ");
+      if (nextStepIndex == pattern.length - 1 && stopRequested) {
+        started = false;
+      }  
+
+      if (pattern[nextStepIndex] == 9) {
+        playingNotes.forEach((n) => {
+          var noteOn = new NoteOn(n);
+          noteOn.sendAtBeat(nextBeat);
+          var noteOff = new NoteOff(noteOn);
+          noteOff.sendAtBeat(nextBeat + noteLength);
+        });
+      } else {
+        var noteOn = getNoteOn(pattern[nextStepIndex]);
+        if (noteOn) {
+          noteOn.sendAtBeat(nextBeat);
+          var noteOff = new NoteOff(noteOn);
+          noteOff.sendAtBeat(nextBeat + noteLength);
+        }
+      }
+    }
+
+  }
+
+}
+
+
+
+var PluginParameters =
+  [
+    { name: "Pattern", type:"menu", valueStrings: patternValues.map(p => p.join(",")), defaultValue: 0 },
+    // { name:"Skip from start of beats", type:"lin",
+    //   minValue:0, maxValue:512, numberOfSteps:512, defaultValue:4 },
+    // { name:"Limit length of beats to", type:"lin",
+    //   minValue:0, maxValue:512, numberOfSteps:512, defaultValue:8 },
+    { name:"Items per bit", type:"menu", valueStrings: itemsPerBeatValues.map(t => t.toString()), defaultValue: 3 },
+    { name:"Note length, %", type:"lin",
+      minValue:10, maxValue:300, numberOfSteps:29, defaultValue:100 },
+    // { name:"Beat shift, %", type:"lin",
+    //   minValue:-50, maxValue: 50, numberOfSteps:100, defaultValue:0 },
+
+  ];

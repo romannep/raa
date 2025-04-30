@@ -23,6 +23,7 @@
 var NeedsTimingInfo = true;
 
 var patternValues = [
+  [1, 3, 13, 14, 13, 3],
   [9, 9, 9, 9],
   [],
   [1, 2, 3, 2],
@@ -89,7 +90,8 @@ function HandleMIDI(event) {
       }
     }
 
-    activeNotes.push(event);
+    activeNotes.push(new NoteOn(event));
+    event.velocity = 0;
     lastActiveNoteBeatPos = event.beatPos;
     activeNotesProcessed = false;
 
@@ -106,8 +108,6 @@ function HandleMIDI(event) {
       started = true;
     }
   }
-
-
 
 }
 
