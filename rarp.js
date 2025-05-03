@@ -38,7 +38,6 @@ var itemsPerBeatValues = [0.125, 0.25, 0.5, 1, 2, 4, 8];
 var activeNotes = []; // Currently pressed keys
 var playingNotes = [];// To play when hand not holds keys
 var started = false;
-var stopRequested = false;
 var start = 0; // beat position when performance started
 var notesCountToStart = 3;
 
@@ -71,12 +70,12 @@ function HandleMIDI(event) {
     if (activeNotes.length > 1) {
       activeNotes.sort(sortByPitchAscending);
     }
-
+    Trace("noteOn pitch=" + event.pitch + " now active: " + activeNotes.length + " started=" + started);
     if (activeNotes.length >= notesCountToStart && !started) {
       started = true;
-      stopRequested = false;
       start = event.beatPos;
       playingNotes = activeNotes.slice(0); 
+      Trace('started set true s=' + start);
     }
   }
 
@@ -84,9 +83,6 @@ function HandleMIDI(event) {
     var noteIndex = activeNotes.findIndex(n => n.pitch == event.pitch);
     if (noteIndex > -1) {
       activeNotes.splice(noteIndex, 1);
-    }
-    if (activeNotes.length < notesCountToStart) {
-      stopRequested = true;
     }
   }
 
@@ -105,12 +101,14 @@ function getNoteOn(patternValue) {
   if (patternValue > 20) {
     var noteOn = new NoteOn;
     noteOn.pitch = patternValue;
+    noteOn.velocity = 120;
     return noteOn;
   } else {
     var indexAndShift = getNoteIndexAndShift(patternValue);
     if (indexAndShift.index != -1) {
       var noteOn = new NoteOn(playingNotes[indexAndShift.index]);
       noteOn.pitch = noteOn.pitch + indexAndShift.shift;
+      noteOn.velocity = 120;
       return noteOn;
     }
   }
@@ -132,32 +130,37 @@ function ProcessMIDI() {
 
     var passedBeats = blockStart - start;
     var passedStepsInt = Math.floor(passedBeats * itemsPerBeat);
+
+    if (passedStepsInt < -1) {
+      started = false;
+    }
+
     var nextStepInt = passedStepsInt + 1;
     var nextBeat = start + nextStepInt / itemsPerBeat;
     var nextStepIndex = nextStepInt % pattern.length;
 
 
     if (blockStart <= nextBeat && nextBeat < blockEnd) {
-      // Trace("passedStepsInt=" + passedStepsInt + " nextStepIndex=" + nextStepIndex + " ");
-      if (nextStepIndex == pattern.length - 1 && stopRequested) {
+      Trace("passedStepsInt=" + passedStepsInt + " nextStepIndex=" + nextStepIndex + " bs=" + blockStart + " start=" + start);
+      if (nextStepIndex == pattern.length - 1) {
         started = false;
       }  
 
-      if (pattern[nextStepIndex] == 9) {
-        playingNotes.forEach((n) => {
-          var noteOn = new NoteOn(n);
-          noteOn.sendAtBeat(nextBeat);
-          var noteOff = new NoteOff(noteOn);
-          noteOff.sendAtBeat(nextBeat + noteLength);
-        });
-      } else {
+      // if (pattern[nextStepIndex] == 9) {
+      //   playingNotes.forEach((n) => {
+      //     var noteOn = new NoteOn(n);
+      //     noteOn.sendAtBeat(nextBeat);
+      //     var noteOff = new NoteOff(noteOn);
+      //     noteOff.sendAtBeat(nextBeat + noteLength);
+      //   });
+      // } else {
         var noteOn = getNoteOn(pattern[nextStepIndex]);
         if (noteOn) {
           noteOn.sendAtBeat(nextBeat);
           var noteOff = new NoteOff(noteOn);
           noteOff.sendAtBeat(nextBeat + noteLength);
         }
-      }
+      // }
     }
 
   }
