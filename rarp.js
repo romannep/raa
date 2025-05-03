@@ -23,6 +23,7 @@
 var NeedsTimingInfo = true;
 
 var patternValues = [
+  [1,0,0,2,9,0,0,0],
   [1, 3, 13, 14, 13, 3],
   [9, 9, 9, 9],
   [],
@@ -61,6 +62,15 @@ function getNoteIndexAndShift(patternValue) { // 0-7 - note index, -1 - chord
   return { index: -1, shift: 0 };
 }
 
+function checkAndStart(beatPos) {
+  if (activeNotes.length >= notesCountToStart && !started) {
+    started = true;
+    start = beatPos;
+    playingNotes = activeNotes.slice(0); 
+    Trace('started set true s=' + start);
+  }
+}
+
 function HandleMIDI(event) {
   if (event instanceof NoteOn) {
 
@@ -71,12 +81,7 @@ function HandleMIDI(event) {
       activeNotes.sort(sortByPitchAscending);
     }
     Trace("noteOn pitch=" + event.pitch + " now active: " + activeNotes.length + " started=" + started);
-    if (activeNotes.length >= notesCountToStart && !started) {
-      started = true;
-      start = event.beatPos;
-      playingNotes = activeNotes.slice(0); 
-      Trace('started set true s=' + start);
-    }
+    checkAndStart(event.beatPos);
   }
 
   if (event instanceof NoteOff) {
@@ -144,23 +149,32 @@ function ProcessMIDI() {
       Trace("passedStepsInt=" + passedStepsInt + " nextStepIndex=" + nextStepIndex + " bs=" + blockStart + " start=" + start);
       if (nextStepIndex == pattern.length - 1) {
         started = false;
+        checkAndStart(nextBeat + noteLength);
       }  
 
-      // if (pattern[nextStepIndex] == 9) {
-      //   playingNotes.forEach((n) => {
-      //     var noteOn = new NoteOn(n);
-      //     noteOn.sendAtBeat(nextBeat);
-      //     var noteOff = new NoteOff(noteOn);
-      //     noteOff.sendAtBeat(nextBeat + noteLength);
-      //   });
-      // } else {
+      var noteLengthMultiplicator = 1;
+      var futureStepIndex = nextStepIndex + 1;
+      while (futureStepIndex < pattern.length - 1 && pattern[futureStepIndex] == 0) {
+        noteLengthMultiplicator += 1;
+        futureStepIndex += 1;
+      }
+      noteLength = noteLength * noteLengthMultiplicator;
+
+      if (pattern[nextStepIndex] == 9) {
+        playingNotes.forEach((n) => {
+          var noteOn = new NoteOn(n);
+          noteOn.sendAtBeat(nextBeat);
+          var noteOff = new NoteOff(noteOn);
+          noteOff.sendAtBeat(nextBeat + noteLength);
+        });
+      } else {
         var noteOn = getNoteOn(pattern[nextStepIndex]);
         if (noteOn) {
           noteOn.sendAtBeat(nextBeat);
           var noteOff = new NoteOff(noteOn);
           noteOff.sendAtBeat(nextBeat + noteLength);
         }
-      // }
+      }
     }
 
   }
