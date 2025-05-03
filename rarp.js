@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// R's Auto Accompaniment//-----------------------------------------------------------------------------
+// Roman's Arpeggiator//-----------------------------------------------------------------------------
 /*
 	Patterns
 	- 1-8 - num of note in chord from bottom to top
@@ -9,15 +9,6 @@
 	- 0 - pause
 	- 21+ - exact pitch
 	- -(pitch*12 + note) - note in chord from bottom to top transposed down to pitch
-	- empty pattern - no repeat, just push
-
-	Items per beat
-
-	Start at beat
-
-	Length of beats
-
-	Threshold = 0.5
 */
 
 var NeedsTimingInfo = true;
@@ -120,7 +111,6 @@ function getNoteOn(patternValue) {
 }
 
 function ProcessMIDI() {
-  // Get timing information from the host application
   var musicInfo = GetTimingInfo();
 
   if (started) {
@@ -146,7 +136,7 @@ function ProcessMIDI() {
 
 
     if (blockStart <= nextBeat && nextBeat < blockEnd) {
-      Trace("passedStepsInt=" + passedStepsInt + " nextStepIndex=" + nextStepIndex + " bs=" + blockStart + " start=" + start);
+      // Trace("passedStepsInt=" + passedStepsInt + " nextStepIndex=" + nextStepIndex + " bs=" + blockStart + " start=" + start);
       if (nextStepIndex == pattern.length - 1) {
         started = false;
         checkAndStart(nextBeat + noteLength);
@@ -186,14 +176,7 @@ function ProcessMIDI() {
 var PluginParameters =
   [
     { name: "Pattern", type:"menu", valueStrings: patternValues.map(p => p.join(",")), defaultValue: 0 },
-    // { name:"Skip from start of beats", type:"lin",
-    //   minValue:0, maxValue:512, numberOfSteps:512, defaultValue:4 },
-    // { name:"Limit length of beats to", type:"lin",
-    //   minValue:0, maxValue:512, numberOfSteps:512, defaultValue:8 },
     { name:"Items per bit", type:"menu", valueStrings: itemsPerBeatValues.map(t => t.toString()), defaultValue: 3 },
     { name:"Note length, %", type:"lin",
       minValue:10, maxValue:300, numberOfSteps:29, defaultValue:100 },
-    // { name:"Beat shift, %", type:"lin",
-    //   minValue:-50, maxValue: 50, numberOfSteps:100, defaultValue:0 },
-
   ];
