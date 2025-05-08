@@ -7,11 +7,20 @@
 	- 13 - 20 - num of note in chord from bottom to top transposed +octave
 	- -11 - -4 - num of note in chord from bottom to top transposed -octave
 	- 0 - pause
-	- 21+ - exact pitch
+	- 21+ - exact pitch - C in C1 == 24
 	- -(pitch*12 + note) - note in chord from bottom to top transposed down to pitch
 */
 
 var NeedsTimingInfo = true;
+
+var drumPatterns = [
+  {
+    pattern: [36, 0, 0, 0, 40, 0, 0, 0],
+    intro: [0, 0, 40, 0, 0, 40, 0, 40],
+  },
+];
+
+var drumStartedPattern = -1;
 
 var patternValues = [
   [1,0,0,2,9,0,0,0],
@@ -65,14 +74,18 @@ function checkAndStart(beatPos) {
 function HandleMIDI(event) {
   if (event instanceof NoteOn) {
 
+    if (event.pitch == 24) { // 0
+      drumStartedPattern = drumStartedPattern == 0 ? -1 : 0;
+      Trace(drumStartedPattern > -1 ? 'Drum started' : 'Drum stopped');
+    }
 
     activeNotes.push(new NoteOn(event));
     
     if (activeNotes.length > 1) {
       activeNotes.sort(sortByPitchAscending);
     }
-    Trace("noteOn pitch=" + event.pitch + " now active: " + activeNotes.length + " started=" + started);
     checkAndStart(event.beatPos);
+    Trace("noteOn pitch=" + event.pitch + " now active: " + activeNotes.length + " started=" + started );
   }
 
   if (event instanceof NoteOff) {
@@ -134,6 +147,7 @@ function ProcessMIDI() {
     var nextBeat = start + nextStepInt / itemsPerBeat;
     var nextStepIndex = nextStepInt % pattern.length;
 
+    var isDrum = GetParameter('Drum');
 
     if (blockStart <= nextBeat && nextBeat < blockEnd) {
       // Trace("passedStepsInt=" + passedStepsInt + " nextStepIndex=" + nextStepIndex + " bs=" + blockStart + " start=" + start);
@@ -149,20 +163,35 @@ function ProcessMIDI() {
         futureStepIndex += 1;
       }
       noteLength = noteLength * noteLengthMultiplicator;
-
-      if (pattern[nextStepIndex] == 9) {
-        playingNotes.forEach((n) => {
-          var noteOn = new NoteOn(n);
-          noteOn.sendAtBeat(nextBeat);
-          var noteOff = new NoteOff(noteOn);
-          noteOff.sendAtBeat(nextBeat + noteLength);
-        });
+      
+      if (isDrum) {
+        if (drumStartedPattern > -1) {
+          var drumPattern = drumPatterns[drumStartedPattern].pattern;
+          var noteOn = new NoteOn();
+          var nextPitch = drumPattern[nextStepIndex];
+          noteOn.pitch = nextPitch;
+          noteOn.velocity = 120;
+          if (noteOn) {
+            noteOn.sendAtBeat(nextBeat);
+            var noteOff = new NoteOff(noteOn);
+            noteOff.sendAtBeat(nextBeat + noteLength);
+          }
+        }
       } else {
-        var noteOn = getNoteOn(pattern[nextStepIndex]);
-        if (noteOn) {
-          noteOn.sendAtBeat(nextBeat);
-          var noteOff = new NoteOff(noteOn);
-          noteOff.sendAtBeat(nextBeat + noteLength);
+        if (pattern[nextStepIndex] == 9) {
+          playingNotes.forEach((n) => {
+            var noteOn = new NoteOn(n);
+            noteOn.sendAtBeat(nextBeat);
+            var noteOff = new NoteOff(noteOn);
+            noteOff.sendAtBeat(nextBeat + noteLength);
+          });
+        } else {
+          var noteOn = getNoteOn(pattern[nextStepIndex]);
+          if (noteOn) {
+            noteOn.sendAtBeat(nextBeat);
+            var noteOff = new NoteOff(noteOn);
+            noteOff.sendAtBeat(nextBeat + noteLength);
+          }
         }
       }
     }
@@ -175,6 +204,7 @@ function ProcessMIDI() {
 
 var PluginParameters =
   [
+    { name: "Drum", type: "checkbox", defaultValue: 0 },
     { name: "Pattern", type:"menu", valueStrings: patternValues.map(p => p.join(",")), defaultValue: 0 },
     { name:"Items per bit", type:"menu", valueStrings: itemsPerBeatValues.map(t => t.toString()), defaultValue: 3 },
     { name:"Note length, %", type:"lin",
