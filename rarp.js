@@ -20,19 +20,13 @@ var drumPatterns = [
   },
 ];
 
-var drumStartedPattern = -1;
+var drumStartedPattern = 0;
 
 var patternValues = [
-  [1,0,0,2,9,0,0,0],
+  [1,0,0,0,9,0,0,0],
+  [1,0,0,0,1,0,0,0],
   [1, 3, 13, 14, 13, 3],
   [9, 9, 9, 9],
-  [],
-  [1, 2, 3, 2],
-  [1, 2, 3, 2, 13, 3, 2, 3],
-  [36, 36, 36, 36],
-  [36, 0, 38, 40, 0, 40, 38, 0],
-  [-11, 0, 0, 0],
-  [0, 0, 9, 0, -(5*12 + 1), -(3*12 + 1), 9, 0 ],
 ];
 var itemsPerBeatValues = [0.125, 0.25, 0.5, 1, 2, 4, 8];
 
@@ -123,10 +117,14 @@ function getNoteOn(patternValue) {
   }
 }
 
+var drumNoteShift = -0.05;
+
 function ProcessMIDI() {
   var musicInfo = GetTimingInfo();
 
   if (started) {
+    var isDrum = GetParameter('Drum');
+
     var pattern = patternValues[GetParameter("Pattern")];
 
     var blockStart = musicInfo.blockStartBeat;
@@ -135,8 +133,10 @@ function ProcessMIDI() {
     var noteLengthPercent = GetParameter("Note length, %");
     var itemsPerBeat = itemsPerBeatValues[GetParameter("Items per bit")];
     var noteLength = 1 / itemsPerBeat * noteLengthPercent / 100;
-
-    var passedBeats = blockStart - start;
+	
+	var startShift = isDrum ? drumNoteShift : 0;
+    var shiftedStart = start + startShift;
+    var passedBeats = blockStart - shiftedStart;
     var passedStepsInt = Math.floor(passedBeats * itemsPerBeat);
 
     if (passedStepsInt < -1) {
@@ -144,16 +144,14 @@ function ProcessMIDI() {
     }
 
     var nextStepInt = passedStepsInt + 1;
-    var nextBeat = start + nextStepInt / itemsPerBeat;
+    var nextBeat = shiftedStart + nextStepInt / itemsPerBeat;
     var nextStepIndex = nextStepInt % pattern.length;
 
-    var isDrum = GetParameter('Drum');
-
     if (blockStart <= nextBeat && nextBeat < blockEnd) {
-      // Trace("passedStepsInt=" + passedStepsInt + " nextStepIndex=" + nextStepIndex + " bs=" + blockStart + " start=" + start);
+      Trace("passedStepsInt=" + passedStepsInt + " nextStepIndex=" + nextStepIndex + " bs=" + blockStart + " start=" + start);
       if (nextStepIndex == pattern.length - 1) {
         started = false;
-        checkAndStart(nextBeat + noteLength);
+        checkAndStart(nextBeat + noteLength - startShift);
       }  
 
       var noteLengthMultiplicator = 1;
