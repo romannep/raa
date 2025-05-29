@@ -16,7 +16,7 @@ var NeedsTimingInfo = true;
 var drumPatterns = [
   {
     pattern: [36, 0, 0, 0, 40, 0, 0, 0],
-    intro: [0, 0, 0, 0, 40, 0, 40, 0],
+    intro: [ 0, 0, 0, 40, 40, 0],
   },
   {
     pattern: [36, 0, 0, 40, 0, 36, 36, 0, 0, 40, 0, 0],
@@ -142,7 +142,10 @@ function ProcessMIDI() {
   if (started) {
     var isDrum = GetParameter('Drum');
 
-    var pattern = isDrum ? drumPatterns[drumStartedPattern].pattern : patternValues[GetParameter("Pattern")];
+    var pattern = patternValues[GetParameter("Pattern")];
+    if (isDrum) {
+      pattern = drumIntro ? drumPatterns[drumStartedPattern].intro : drumPatterns[drumStartedPattern].pattern;
+    }
 
     var blockStart = musicInfo.blockStartBeat;
     var blockEnd = musicInfo.blockEndBeat;
@@ -163,13 +166,13 @@ function ProcessMIDI() {
 
     var nextStepInt = passedStepsInt + 1;
     var nextBeat = shiftedStart + nextStepInt / itemsPerBeat;
-    var nextStepIndex = nextStepInt % pattern.length;
+    var drumIntroPassedbeats = isDrum && !drumIntro && !!drumPatterns[drumStartedPattern].intro ? drumPatterns[drumStartedPattern].intro.length : 0;
+    var nextStepIndex = (nextStepInt - drumIntroPassedbeats) % pattern.length;
 
     if (blockStart <= nextBeat && nextBeat < blockEnd) {
-      Trace("passedStepsInt=" + passedStepsInt + " nextStepIndex=" + nextStepIndex + " bs=" + blockStart + " start=" + start);
+      Trace("passedStepsInt=" + passedStepsInt + " nextStepIndex=" + nextStepIndex + " bs=" + blockStart + " start=" + start + "drum intro" + drumIntro);
       if (isDrum) {
-        if (nextStepIndex > pattern.length - 1) {
-          nextStepIndex = 0;
+        if (nextStepIndex == pattern.length - 1) {
           if (drumIntro) {
             drumIntro = false;
           }
@@ -191,9 +194,8 @@ function ProcessMIDI() {
       
       if (isDrum) {
         if (drumStartedPattern > -1) {
-          var drumPattern = drumIntro ? (drumPatterns[drumStartedPattern].intro || drumPatterns[drumStartedPattern].pattern) : drumPatterns[drumStartedPattern].pattern;
           var noteOn = new NoteOn();
-          var nextPitch = drumPattern[nextStepIndex];
+          var nextPitch = pattern[nextStepIndex];
           noteOn.pitch = nextPitch;
           noteOn.velocity = 120;
           if (noteOn) {
