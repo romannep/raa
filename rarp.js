@@ -16,7 +16,7 @@ var NeedsTimingInfo = true;
 var drumPatterns = [
   {
     pattern: [36, 0, 0, 0, 40, 0, 0, 0],
-    intro: [ 0, 0, 0, 40, 40, 0],
+    intro: [ 0, 0, 0, 0, 0, 0, 0, 0, 40, 0, 40, 0, 0],
   },
   {
     pattern: [36, 0, 0, 40, 0, 36, 36, 0, 0, 40, 0, 0],
