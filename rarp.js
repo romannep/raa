@@ -219,6 +219,7 @@ function ProcessMIDI() {
         if (pattern[nextStepIndex] == 9) {
           playingNotes.forEach((n) => {
             var noteOn = new NoteOn(n);
+            noteOn.velocity = 120;
             noteOn.sendAtBeat(nextBeat);
             var noteOff = new NoteOff(noteOn);
             noteOff.sendAtBeat(nextBeat + noteLength);
