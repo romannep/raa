@@ -247,17 +247,76 @@ function ProcessMIDI() {
 
 }
 
+var ModeSwitcherParameter = { name:"Stop on keys release", type:"checkbox", defaultValue:1 };
+var StartKeyPitchParameter = { name: "Start key pitch", type: "lin", minValue: -24, maxValue: 120, numberOfSteps: 144, defaultValue: 24 };
 
+var BaseParameters = [
+    { name:"Pattern length", type:"lin", minValue:2, maxValue:16, numberOfSteps:14, defaultValue:4 },
+    { name:"Items per bit", type:"menu", valueStrings: itemsPerBeatValues.map(t => t.toString()), defaultValue: 3 },
+    { name: "Add", type: "momentary" },
+    { name: "Remove last", type: "momentary" },
+];
+
+
+// TODO: Normalized chord index. One pattern can be used for differntly transposed chords.
+var KeyParamters = [
+  { name: "Type", type:"menu", valueStrings: ["Number", "Pitch"], defaultValue: 0 }, 
+  { name: "Note length, steps", type:"lin", minValue:1, maxValue:16, numberOfSteps:16, defaultValue:1 },
+];
+var KeyParameterPitch = { name: "Note pitch", type: "lin", minValue: -24, maxValue: 120, numberOfSteps: 144, defaultValue: 24 };
+// 9 - for whole chord
+var KeyParameterIndex = { name: "Note number", type: "lin", minValue: 1, maxValue: 9, numberOfSteps: 9, defaultValue: 1 };
+
+
+// UI
+
+var paramsChanged = false;
+
+function Idle () {
+
+  if (paramsChanged) {
+    var stopOnRelease = GetParameter("Stop on keys release");
+    PluginParameters = [ModeSwitcherParameter];
+    if (stopOnRelease == 0) {
+      PluginParameters.push(StartKeyPitchParameter);
+    }
+    PluginParameters = PluginParameters.concat(BaseParameters);
+    Trace('Do update parameters');
+    UpdatePluginParameters();
+
+    paramsChanged = false;
+  }
+
+}
+
+var ParamStopOnRelease = 1;
+
+function ParameterChanged(param, value) {
+	Trace('Changed ' + param + ' to ' + value);
+  if (param == 0 && value != ParamStopOnRelease) {
+    ParamStopOnRelease = value;
+    paramsChanged = true;
+  }
+}
 
 var PluginParameters =
   [
-    { name: "Pattern", type:"menu", valueStrings: patternValues.map(p => p.join(",")), defaultValue: 0 },
-    { name:"Items per bit", type:"menu", valueStrings: itemsPerBeatValues.map(t => t.toString()), defaultValue: 3 },
-    { name:"Note length, %", type:"lin",
-      minValue:10, maxValue:300, numberOfSteps:29, defaultValue:100 },
-    { name:"Beat shift, %", type:"lin",
-      minValue:-15, maxValue: 15, numberOfSteps:30, defaultValue:0 },
-    { name: "Drum", type: "checkbox", defaultValue: 0 },
-    { name: "Drum Pattern", type:"menu", valueStrings: drumPatterns.map(p => p.pattern.join(",")), defaultValue: 0 },
+    ModeSwitcherParameter,
+    BaseParameters[0],
+    BaseParameters[1],
+    // { name:"Stop on keys release", type:"checkbox", defaultValue:1 },
+    // { name:"Pattern length", type:"lin",
+    //   minValue:2, maxValue:16, numberOfSteps:14, defaultValue:4 },
+    // { name: "Add", type: "momentary" },
+    // { name: "Remove last", type: "momentary" },
+  
+    // { name: "Pattern", type:"menu", valueStrings: patternValues.map(p => p.join(",")), defaultValue: 0 },
+    // { name:"Items per bit", type:"menu", valueStrings: itemsPerBeatValues.map(t => t.toString()), defaultValue: 3 },
+    // { name:"Note length, %", type:"lin",
+    //   minValue:10, maxValue:300, numberOfSteps:29, defaultValue:100 },
+    // { name:"Beat shift, %", type:"lin",
+    //   minValue:-15, maxValue: 15, numberOfSteps:30, defaultValue:0 },
+    // { name: "Drum", type: "checkbox", defaultValue: 0 },
+    // { name: "Drum Pattern", type:"menu", valueStrings: drumPatterns.map(p => p.pattern.join(",")), defaultValue: 0 },
 
   ];
