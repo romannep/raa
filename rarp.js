@@ -257,7 +257,6 @@ var BaseParameters = [
     { name: "Remove last", type: "momentary" },
 ];
 
-
 // TODO: Normalized chord index. One pattern can be used for differntly transposed chords.
 var KeyParamters = [
   { name: "Type", type:"menu", valueStrings: ["Number", "Pitch"], defaultValue: 0 }, 
@@ -271,6 +270,8 @@ var KeyParameterIndex = { name: "Note number", type: "lin", minValue: 1, maxValu
 // UI
 
 var paramsChanged = false;
+
+var groupsCound = 0;
 
 function Idle () {
 
@@ -296,14 +297,19 @@ function ParameterChanged(param, value) {
   if (param == 0 && value != ParamStopOnRelease) {
     ParamStopOnRelease = value;
     paramsChanged = true;
+  } else {
+    var baseParamIndex = param - 1 - (GetParameter("Stop on keys release") == 0 ? 1 : 0);
+
+    if (baseParamIndex == 2) {
+      Trace('Add push');
+    } else if (baseParamIndex == 3) {
+      Trace('Delete push');
+    }
   }
+
 }
 
-var PluginParameters =
-  [
-    ModeSwitcherParameter,
-    BaseParameters[0],
-    BaseParameters[1],
+var PluginParameters = [ModeSwitcherParameter].concat(BaseParameters);
     // { name:"Stop on keys release", type:"checkbox", defaultValue:1 },
     // { name:"Pattern length", type:"lin",
     //   minValue:2, maxValue:16, numberOfSteps:14, defaultValue:4 },
@@ -318,5 +324,3 @@ var PluginParameters =
     //   minValue:-15, maxValue: 15, numberOfSteps:30, defaultValue:0 },
     // { name: "Drum", type: "checkbox", defaultValue: 0 },
     // { name: "Drum Pattern", type:"menu", valueStrings: drumPatterns.map(p => p.pattern.join(",")), defaultValue: 0 },
-
-  ];
