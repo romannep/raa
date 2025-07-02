@@ -259,13 +259,15 @@ var BaseParameters = [
 
 // TODO: Normalized chord index. One pattern can be used for differntly transposed chords.
 var KeyParamters = [
+  { name: 'Note', type: "text" },
   { name: "Type", type:"menu", valueStrings: ["Number", "Pitch"], defaultValue: 0 }, 
   { name: "Note length, steps", type:"lin", minValue:1, maxValue:16, numberOfSteps:16, defaultValue:1 },
 ];
 var KeyParameterPitch = { name: "Note pitch", type: "lin", minValue: -24, maxValue: 120, numberOfSteps: 144, defaultValue: 24 };
 // 9 - for whole chord
-var KeyParameterIndex = { name: "Note number", type: "lin", minValue: 1, maxValue: 9, numberOfSteps: 9, defaultValue: 1 };
+var KeyParameterNumber = { name: "Note number", type: "lin", minValue: 1, maxValue: 9, numberOfSteps: 9, defaultValue: 1 };
 
+var stepNotes = [];
 
 // UI
 
@@ -282,6 +284,24 @@ function Idle () {
       PluginParameters.push(StartKeyPitchParameter);
     }
     PluginParameters = PluginParameters.concat(BaseParameters);
+
+    for (var i = 0; i < stepNotes.length; i++) {
+      var stepNote = stepNotes[i];
+      var noteParameters = KeyParamters.map(a => Object.assign({}, a));
+      noteParameters.forEach(p => {
+        p.name = "(" + i + ") " + p.name;
+      });
+      noteType = GetParameter("(" + i + ") Type");
+      if (noteType == "Number") {
+        noteParameters.push(KeyParameterNumber);
+      } else {
+        noteParameters.push(KeyParameterPitch);
+      }
+      p = noteParameters[noteParameters.length - 1];
+      p.name = "(" + i + ") " + p.name;
+      PluginParameters = PluginParameters.concat(noteParameters);
+    }
+
     Trace('Do update parameters');
     UpdatePluginParameters();
 
@@ -301,9 +321,11 @@ function ParameterChanged(param, value) {
     var baseParamIndex = param - 1 - (GetParameter("Stop on keys release") == 0 ? 1 : 0);
 
     if (baseParamIndex == 2) {
-      Trace('Add push');
+      stepNotes.push({ type: 'Number' });
+      paramsChanged = true;
     } else if (baseParamIndex == 3) {
-      Trace('Delete push');
+      stepNotes.pop();
+      paramsChanged = true;
     }
   }
 
