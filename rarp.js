@@ -247,14 +247,12 @@ function ProcessMIDI() {
 
 }
 
-var ModeSwitcherParameter = { name:"Stop on keys release", type:"checkbox", defaultValue:1 };
-var StartKeyPitchParameter = { name: "Start key pitch", type: "lin", minValue: -24, maxValue: 120, numberOfSteps: 144, defaultValue: 24 };
 
 var BaseParameters = [
-    { name:"Pattern length", type:"lin", minValue:2, maxValue:16, numberOfSteps:14, defaultValue:4 },
-    { name:"Items per bit", type:"menu", valueStrings: itemsPerBeatValues.map(t => t.toString()), defaultValue: 3 },
-    { name: "Add", type: "momentary" },
-    { name: "Remove last", type: "momentary" },
+  { name:"Stop on keys release", type:"checkbox", defaultValue:1 },
+  { name: "Start key pitch", type: "lin", minValue: -24, maxValue: 120, numberOfSteps: 144, defaultValue: 24 },
+  { name:"Pattern length", type:"lin", minValue:2, maxValue:16, numberOfSteps:14, defaultValue:4 },
+  { name:"Items per bit", type:"menu", valueStrings: itemsPerBeatValues.map(t => t.toString()), defaultValue: 3 },
 ];
 
 // TODO: Normalized chord index. One pattern can be used for differntly transposed chords.
@@ -262,43 +260,32 @@ var KeyParamters = [
   { name: 'Note', type: "text" },
   { name: "Type", type:"menu", valueStrings: ["Number", "Pitch"], defaultValue: 0 }, 
   { name: "Note length, steps", type:"lin", minValue:1, maxValue:16, numberOfSteps:15, defaultValue:1 },
+  { name: "Note number", type: "lin", minValue: 0, maxValue: 9, numberOfSteps: 9, defaultValue: 0 }, // 9 - for whole chord
+  { name: "Note pitch", type: "lin", minValue: -24, maxValue: 120, numberOfSteps: 144, defaultValue: 24 },
 ];
-var KeyParameterPitch = { name: "Note pitch", type: "lin", minValue: -24, maxValue: 120, numberOfSteps: 144, defaultValue: 24 };
-// 9 - for whole chord
-var KeyParameterNumber = { name: "Note number", type: "lin", minValue: 1, maxValue: 9, numberOfSteps: 9, defaultValue: 1 };
+
 
 var stepNotes = [];
+for (let i = 0; i < 20; i++) {
+  stepNotes.push(0);
+}
 
 // UI
 
 var paramsChanged = false;
 
-var groupsCount = 0;
-
 function Idle () {
 
   if (paramsChanged) {
-    var stopOnRelease = GetParameter("Stop on keys release");
-    PluginParameters = [ModeSwitcherParameter];
-    if (stopOnRelease == 0) {
-      PluginParameters.push(StartKeyPitchParameter);
-    }
-    PluginParameters = PluginParameters.concat(BaseParameters);
+    PluginParameters = [].concat(BaseParameters);
 
     for (var i = 0; i < stepNotes.length; i++) {
-      var stepNote = stepNotes[i];
+
       var noteParameters = KeyParamters.map(a => Object.assign({}, a));
       noteParameters.forEach(p => {
         p.name = "(" + (i+1) + ") " + p.name;
       });
-      noteType = GetParameter("(" + (i+1) + ") Type");
-      if (noteType == "Number") {
-        noteParameters.push( Object.assign({}, KeyParameterNumber));
-      } else {
-        noteParameters.push( Object.assign({}, KeyParameterPitch));
-      }
-      p = noteParameters[noteParameters.length - 1];
-      p.name = "(" + (i+1) + ") " + p.name;
+
       PluginParameters = PluginParameters.concat(noteParameters);
     }
 
@@ -310,34 +297,24 @@ function Idle () {
 
 }
 
-var ParamStopOnRelease = 1;
-
 function ParameterChanged(param, value) {
-	// Trace('Changed ' + param + ' to ' + value);
-  var startParametersCount = 1 + (GetParameter("Stop on keys release") == 0 ? 1 : 0)
-  if (param == 0 && value != ParamStopOnRelease) {
-    ParamStopOnRelease = value;
-    paramsChanged = true;
-  } else if (param >= startParametersCount + BaseParameters.length) {
-    var relativeIndex = param - startParametersCount - BaseParameters.length;
+  Trace('P changed ' + param + " v " + value + " bc " + BaseParameters.length);
+	if (param >= BaseParameters.length) {
+    var relativeIndex = param - BaseParameters.length;
     var groupIndex = Math.floor((relativeIndex)/(KeyParamters.length + 1));
     var keyParameterIndex = relativeIndex - groupIndex * (KeyParamters.length + 1);
-    Trace('key param changed. group: ' + groupIndex + ' key = ' + keyParameterIndex);
-  } else {
-    var baseParamIndex = param - startParametersCount;
-
-    if (baseParamIndex == 2) {
-      stepNotes.push({ type: 'Number' });
-      paramsChanged = true;
-    } else if (baseParamIndex == 3) {
-      stepNotes.pop();
+    Trace('key param changed. group: ' + groupIndex + ' key = ' + keyParameterIndex + " stored type " + stepNotes[groupIndex] + " p value" + value + " k p " + keyParameterIndex);
+    if (keyParameterIndex == 1 && stepNotes[groupIndex] != value) {
+      stepNotes[groupIndex] = value;
       paramsChanged = true;
     }
   }
 
 }
 
-var PluginParameters = [ModeSwitcherParameter].concat(BaseParameters);
+var PluginParameters = [].concat(BaseParameters);
+paramsChanged = true;
+Idle();
     // { name:"Stop on keys release", type:"checkbox", defaultValue:1 },
     // { name:"Pattern length", type:"lin",
     //   minValue:2, maxValue:16, numberOfSteps:14, defaultValue:4 },
