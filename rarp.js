@@ -261,7 +261,7 @@ var BaseParameters = [
 var KeyParamters = [
   { name: 'Note', type: "text" },
   { name: "Type", type:"menu", valueStrings: ["Number", "Pitch"], defaultValue: 0 }, 
-  { name: "Note length, steps", type:"lin", minValue:1, maxValue:16, numberOfSteps:16, defaultValue:1 },
+  { name: "Note length, steps", type:"lin", minValue:1, maxValue:16, numberOfSteps:15, defaultValue:1 },
 ];
 var KeyParameterPitch = { name: "Note pitch", type: "lin", minValue: -24, maxValue: 120, numberOfSteps: 144, defaultValue: 24 };
 // 9 - for whole chord
@@ -273,7 +273,7 @@ var stepNotes = [];
 
 var paramsChanged = false;
 
-var groupsCound = 0;
+var groupsCount = 0;
 
 function Idle () {
 
@@ -289,16 +289,16 @@ function Idle () {
       var stepNote = stepNotes[i];
       var noteParameters = KeyParamters.map(a => Object.assign({}, a));
       noteParameters.forEach(p => {
-        p.name = "(" + i + ") " + p.name;
+        p.name = "(" + (i+1) + ") " + p.name;
       });
-      noteType = GetParameter("(" + i + ") Type");
+      noteType = GetParameter("(" + (i+1) + ") Type");
       if (noteType == "Number") {
-        noteParameters.push(KeyParameterNumber);
+        noteParameters.push( Object.assign({}, KeyParameterNumber));
       } else {
-        noteParameters.push(KeyParameterPitch);
+        noteParameters.push( Object.assign({}, KeyParameterPitch));
       }
       p = noteParameters[noteParameters.length - 1];
-      p.name = "(" + i + ") " + p.name;
+      p.name = "(" + (i+1) + ") " + p.name;
       PluginParameters = PluginParameters.concat(noteParameters);
     }
 
@@ -313,12 +313,18 @@ function Idle () {
 var ParamStopOnRelease = 1;
 
 function ParameterChanged(param, value) {
-	Trace('Changed ' + param + ' to ' + value);
+	// Trace('Changed ' + param + ' to ' + value);
+  var startParametersCount = 1 + (GetParameter("Stop on keys release") == 0 ? 1 : 0)
   if (param == 0 && value != ParamStopOnRelease) {
     ParamStopOnRelease = value;
     paramsChanged = true;
+  } else if (param >= startParametersCount + BaseParameters.length) {
+    var relativeIndex = param - startParametersCount - BaseParameters.length;
+    var groupIndex = Math.floor((relativeIndex)/(KeyParamters.length + 1));
+    var keyParameterIndex = relativeIndex - groupIndex * (KeyParamters.length + 1);
+    Trace('key param changed. group: ' + groupIndex + ' key = ' + keyParameterIndex);
   } else {
-    var baseParamIndex = param - 1 - (GetParameter("Stop on keys release") == 0 ? 1 : 0);
+    var baseParamIndex = param - startParametersCount;
 
     if (baseParamIndex == 2) {
       stepNotes.push({ type: 'Number' });
