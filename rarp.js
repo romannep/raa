@@ -205,13 +205,15 @@ function ProcessMIDI() {
       // }
       // noteLength = noteLength * noteLengthMultiplicator;
       
-      var notesToPlay = patternData[nextStepIndex];
+      var notesToPlay = patternData['step' + (nextStepIndex + 1)];
+      Trace('index ' + nextStepIndex + ' step ' + 'step' + (nextStepIndex + 1) + ' notes ' + JSON.stringify(notesToPlay) );
       if (notesToPlay && notesToPlay.length) {
         for (var i = 0; i < notesToPlay.length; i++) {
           var noteToPlay = notesToPlay[i];
+          Trace('will play ' + JSON.stringify(noteToPlay));
           var noteOn = new NoteOn();
           noteOn.velocity = 120;
-          if (noteToPlay.type == "Pitch") {
+          if (noteToPlay.type == 1) { // pitch
             noteOn.pitch = noteToPlay.pitch;
           } else { //number
             var indexAndShift = getNoteIndexAndShift(noteToPlay.num);
@@ -286,7 +288,7 @@ var BaseParameters = [
 var KeyParamters = [
   { name: 'Note', type: "text" },
   { name: "Type", type:"menu", valueStrings: ["Number", "Pitch"], defaultValue: 0 }, 
-  { name: "Step", type:"lin", minValue:1, maxValue:16, numberOfSteps:15, defaultValue: 0 },
+  { name: "Step", type:"lin", minValue:0, maxValue:16, numberOfSteps:16, defaultValue: 0 },
   { name: "Note length, steps", type:"lin", minValue:1, maxValue:16, numberOfSteps:15, defaultValue:1 },
   { name: "Note number", type: "lin", minValue: 0, maxValue: 9, numberOfSteps: 9, defaultValue: 0 }, // 9 - for whole chord
   { name: "Note pitch", type: "lin", minValue: 0, maxValue: 120, numberOfSteps: 120, defaultValue: 0 },
@@ -337,11 +339,7 @@ function fillPatternData() {
     var pitch = GetParameter(stepNoteParamName("Note pitch", noteIndex));
     var step = GetParameter(stepNoteParamName("Step", noteIndex));
     
-    if (noteIndex < 5) {
-      Trace("Note " + noteIndex + " type " + type + " num " + num + " pitch " + pitch);
-    }
-    if ((type == 0 && num > 0) || (type == 1 && pitch > 0)) {
-      Trace("Do add to step " + step);
+    if (step > 0) {
       var patternStepData = patternData['step' + step] || [];
       patternStepData.push({
         type: type,
@@ -349,27 +347,14 @@ function fillPatternData() {
         pitch: pitch,
         length: GetParameter(stepNoteParamName("Note length, steps", noteIndex)),
       });
+      patternData['step' + step] = patternStepData;
     }
-    patternData['step' + step] = patternStepData;
   }
-  Trace('Pattern data ' + Object.keys(patternData).map((d, index) => '' + d + ' ' + (patternData[d] ? patternData[d].length : 0) + ';'));
+  Trace('Pattern data ' + JSON.stringify(patternData));
 }
 
 function ParameterChanged(param, value) {
-  // Trace('P changed ' + param + " v " + value);
-	// if (param >= BaseParameters.length) {
-  //   var relativeIndex = param - BaseParameters.length;
-  //   var groupIndex = Math.floor((relativeIndex)/(KeyParamters.length + 1));
-  //   var keyParameterIndex = relativeIndex - groupIndex * (KeyParamters.length + 1);
-  //   if (keyParameterIndex == 1 && stepNotes[groupIndex] != value) {
-  //     stepNotes[groupIndex] = value;
-  //     paramsChanged = true;
-  //   }
-
-  //   // fillPatternData();
-  // }
   fillPatternData();
-
 }
 
 var PluginParameters = [].concat(BaseParameters);
@@ -382,6 +367,7 @@ for (var i = 0; i < stepNotes.length; i++) {
 
   PluginParameters = PluginParameters.concat(noteParameters);
 }
+fillPatternData();
 
     // { name:"Stop on keys release", type:"checkbox", defaultValue:1 },
     // { name:"Pattern length", type:"lin",
