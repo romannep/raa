@@ -13,36 +13,34 @@
 
 var NeedsTimingInfo = true;
 
-var drumPatterns = [
-  {
-    pattern: [36, 0, 0, 0, 40, 0, 0, 0],
-    intro: [ 0, 0, 0, 0, 0, 0, 0, 0, 40, 0, 40, 0, 0],
-  },
-  {
-    pattern: [36, 0, 0, 40, 0, 36, 36, 0, 0, 40, 0, 0],
-    pattern2: [42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42],
-  },
-  {
-    pattern: [36, 0, 40, 36, 0, 0, 40, 0],
-    pattern2: [42, 42, 42, 42, 42, 42, 42, 42],
-  },
-  {
-    pattern: [36, 0, 40, 0, 36, 0, 40, 0],
-    pattern2: [42, 42, 42, 42, 42, 42, 42, 42],
-  },
-];
+// var drumPatterns = [
+//   {
+//     pattern: [36, 0, 0, 0, 40, 0, 0, 0],
+//     intro: [ 0, 0, 0, 0, 0, 0, 0, 0, 40, 0, 40, 0, 0],
+//   },
+//   {
+//     pattern: [36, 0, 0, 40, 0, 36, 36, 0, 0, 40, 0, 0],
+//     pattern2: [42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42],
+//   },
+//   {
+//     pattern: [36, 0, 40, 36, 0, 0, 40, 0],
+//     pattern2: [42, 42, 42, 42, 42, 42, 42, 42],
+//   },
+//   {
+//     pattern: [36, 0, 40, 0, 36, 0, 40, 0],
+//     pattern2: [42, 42, 42, 42, 42, 42, 42, 42],
+//   },
+// ];
 
-var drumStartedPattern = -1;
+// var patternValues = [
+//   [1,0,0,0,9,0,0,0],
+//   [9,0,0,0,9,0,0,0],
+//   [1,0,0,0,1,0,0,0],
+//   [1, 3, 13, 14, 13, 3],
+//   [9, 9, 9, 9],
+// ];
 
-var patternValues = [
-  [1,0,0,0,9,0,0,0],
-  [9,0,0,0,9,0,0,0],
-  [1,0,0,0,1,0,0,0],
-  [1, 3, 13, 14, 13, 3],
-  [9, 9, 9, 9],
-];
 var itemsPerBeatValues = [0.125, 0.25, 0.5, 1, 2, 4, 8];
-
 var activeNotes = []; // Currently pressed keys
 var playingNotes = [];// To play when hand not holds keys
 var started = false;
@@ -83,13 +81,10 @@ var drumIntro = false;
 function HandleMIDI(event) {
   if (event instanceof NoteOn) {
 
-    var isDrum = GetParameter('Drum');
-    if (isDrum) {
-      if (event.pitch == 24) { // 0
-        drumStartedPattern = drumStartedPattern == -1 ? GetParameter('Drum Pattern') : -1;
-        Trace(drumStartedPattern > -1 ? 'Drum started ' + drumStartedPattern : 'Drum stopped');
-        if (drumStartedPattern > -1) {
-          drumIntro = !!drumPatterns[drumStartedPattern].intro;
+    var isAccompaniment = GetParameter('Stop on keys release') == 0;
+    if (isAccompaniment) {
+      if (event.pitch == GetParameter('Start key pitch')) {
+        if (!started) {
           started = true;
           start = event.beatPos;
         } else {
@@ -104,9 +99,7 @@ function HandleMIDI(event) {
       }
       checkAndStart(event.beatPos);
     }
-
-
-    Trace("noteOn pitch=" + event.pitch + " now active: " + activeNotes.length + " started=" + started );
+    // Trace("noteOn pitch=" + event.pitch + " now active: " + activeNotes.length + " started=" + started );
   }
 
   if (event instanceof NoteOff) {
@@ -144,25 +137,29 @@ function getNoteOn(patternValue) {
   }
 }
 
+var patternData = {};
+
 function ProcessMIDI() {
   var musicInfo = GetTimingInfo();
 
   if (started) {
-    var isDrum = GetParameter('Drum');
+    var isAccompaniment = GetParameter('Stop on keys release') == 0;
 
-    var pattern = patternValues[GetParameter("Pattern")];
-    if (isDrum) {
-      pattern = drumIntro ? drumPatterns[drumStartedPattern].intro : drumPatterns[drumStartedPattern].pattern;
-    }
+    // var pattern = patternValues[GetParameter("Pattern")];
+
+    // if (isAccompaniment) {
+    //   pattern = drumIntro ? drumPatterns[drumStartedPattern].intro : drumPatterns[drumStartedPattern].pattern;
+    // }
 
     var blockStart = musicInfo.blockStartBeat;
     var blockEnd = musicInfo.blockEndBeat;
 
-    var noteLengthPercent = GetParameter("Note length, %");
+    // var noteLengthPercent = GetParameter("Note length, %");
     var itemsPerBeat = itemsPerBeatValues[GetParameter("Items per bit")];
-    var noteLength = 1 / itemsPerBeat * noteLengthPercent / 100;
-	
-    var beatShiftPercent = GetParameter("Beat shift, %");
+    // var noteLength = 1 / itemsPerBeat * noteLengthPercent / 100;
+	  var noteLength = 1 / itemsPerBeat;
+    
+    var beatShiftPercent = 0; // Legacy // GetParameter("Beat shift, %");
     var startShift = 1 * beatShiftPercent / 100;
     var shiftedStart = start + startShift;
     var passedBeats = blockStart - shiftedStart;
@@ -174,17 +171,21 @@ function ProcessMIDI() {
 
     var nextStepInt = passedStepsInt + 1;
     var nextBeat = shiftedStart + nextStepInt / itemsPerBeat;
-    var drumIntroPassedbeats = isDrum && !drumIntro && !!drumPatterns[drumStartedPattern].intro ? drumPatterns[drumStartedPattern].intro.length : 0;
-    var nextStepIndex = (nextStepInt - drumIntroPassedbeats) % pattern.length;
+    // var drumIntroPassedbeats = isAccompaniment && !drumIntro && !!drumPatterns[drumStartedPattern].intro ? drumPatterns[drumStartedPattern].intro.length : 0;
+    // var nextStepIndex = (nextStepInt - drumIntroPassedbeats) % pattern.length;
+    var nextStepIndex = nextStepInt % pattern.length;
 
     if (blockStart <= nextBeat && nextBeat < blockEnd) {
-      Trace("passedStepsInt=" + passedStepsInt + " nextStepIndex=" + nextStepIndex + " bs=" + blockStart + " start=" + start + "drum intro" + drumIntro);
-      if (isDrum) {
-        if (nextStepIndex == pattern.length - 1) {
-          if (drumIntro) {
-            drumIntro = false;
-          }
-        }  
+      // Trace("passedStepsInt=" + passedStepsInt + " nextStepIndex=" + nextStepIndex + " bs=" + blockStart + " start=" + start + "drum intro" + drumIntro);
+      if (isAccompaniment) {
+        // Do nothing 
+
+        // Legacy
+        // if (nextStepIndex == pattern.length - 1) {
+        //   if (drumIntro) {
+        //     drumIntro = false;
+        //   }
+        // }  
       } else {
         if (nextStepIndex == pattern.length - 1) {
           started = false;
@@ -192,55 +193,77 @@ function ProcessMIDI() {
         }  
       }
 
-      var noteLengthMultiplicator = 1;
-      var futureStepIndex = nextStepIndex + 1;
-      while (futureStepIndex < pattern.length - 1 && pattern[futureStepIndex] == 0) {
-        noteLengthMultiplicator += 1;
-        futureStepIndex += 1;
-      }
-      noteLength = noteLength * noteLengthMultiplicator;
+      // var noteLengthMultiplicator = 1;
+      // var futureStepIndex = nextStepIndex + 1;
+      // while (futureStepIndex < pattern.length - 1 && pattern[futureStepIndex] == 0) {
+      //   noteLengthMultiplicator += 1;
+      //   futureStepIndex += 1;
+      // }
+      // noteLength = noteLength * noteLengthMultiplicator;
       
-      if (isDrum) {
-        if (drumStartedPattern > -1) {
+      var notesToPlay = patternData[nextStepIndex];
+      if (notesToPlay && notesToPlay.length) {
+        for (var i = 0; i < notesToPlay.length; i++) {
+          var noteToPlay = notesToPlay[i];
           var noteOn = new NoteOn();
-          var nextPitch = pattern[nextStepIndex];
-          noteOn.pitch = nextPitch;
           noteOn.velocity = 120;
-          if (noteOn) {
-            noteOn.sendAtBeat(nextBeat);
-            var noteOff = new NoteOff(noteOn);
-            noteOff.sendAtBeat(nextBeat + noteLength);
-          }
-          if (!drumIntro && drumPatterns[drumStartedPattern].pattern2) {
-            var noteOn = new NoteOn();
-            var nextPitch = drumPatterns[drumStartedPattern].pattern2[nextStepIndex];
-            noteOn.pitch = nextPitch;
-            noteOn.velocity = 120;
-            if (noteOn) {
-              noteOn.sendAtBeat(nextBeat);
-              var noteOff = new NoteOff(noteOn);
-              noteOff.sendAtBeat(nextBeat + noteLength);
+          if (noteToPlay.type == "Pitch") {
+            noteOn.pitch = noteToPlay.pitch;
+          } else { //number
+            var indexAndShift = getNoteIndexAndShift(noteToPlay.num);
+            if (indexAndShift.index != -1) {
+              var noteOn = new NoteOn(playingNotes[indexAndShift.index]);
+              noteOn.pitch = noteOn.pitch + indexAndShift.shift;
             }
           }
+          noteOn.sendAtBeat(nextBeat);
+          var noteOff = new NoteOff(noteOn);
+          noteOff.sendAtBeat(nextBeat + noteLength * noteToPlay.length);
         }
-      } else {
-        if (pattern[nextStepIndex] == 9) {
-          playingNotes.forEach((n) => {
-            var noteOn = new NoteOn(n);
-            noteOn.velocity = 120;
-            noteOn.sendAtBeat(nextBeat);
-            var noteOff = new NoteOff(noteOn);
-            noteOff.sendAtBeat(nextBeat + noteLength);
-          });
-        } else {
-          var noteOn = getNoteOn(pattern[nextStepIndex]);
-          if (noteOn) {
-            noteOn.sendAtBeat(nextBeat);
-            var noteOff = new NoteOff(noteOn);
-            noteOff.sendAtBeat(nextBeat + noteLength);
-          }
-        }
+
       }
+
+      // if (isAccompaniment) {
+      //   if (drumStartedPattern > -1) {
+      //     var noteOn = new NoteOn();
+      //     var nextPitch = pattern[nextStepIndex];
+      //     noteOn.pitch = nextPitch;
+      //     noteOn.velocity = 120;
+      //     if (noteOn) {
+      //       noteOn.sendAtBeat(nextBeat);
+      //       var noteOff = new NoteOff(noteOn);
+      //       noteOff.sendAtBeat(nextBeat + noteLength);
+      //     }
+      //     if (!drumIntro && drumPatterns[drumStartedPattern].pattern2) {
+      //       var noteOn = new NoteOn();
+      //       var nextPitch = drumPatterns[drumStartedPattern].pattern2[nextStepIndex];
+      //       noteOn.pitch = nextPitch;
+      //       noteOn.velocity = 120;
+      //       if (noteOn) {
+      //         noteOn.sendAtBeat(nextBeat);
+      //         var noteOff = new NoteOff(noteOn);
+      //         noteOff.sendAtBeat(nextBeat + noteLength);
+      //       }
+      //     }
+      //   }
+      // } else {
+      //   if (pattern[nextStepIndex] == 9) {
+      //     playingNotes.forEach((n) => {
+      //       var noteOn = new NoteOn(n);
+      //       noteOn.velocity = 120;
+      //       noteOn.sendAtBeat(nextBeat);
+      //       var noteOff = new NoteOff(noteOn);
+      //       noteOff.sendAtBeat(nextBeat + noteLength);
+      //     });
+      //   } else {
+      //     var noteOn = getNoteOn(pattern[nextStepIndex]);
+      //     if (noteOn) {
+      //       noteOn.sendAtBeat(nextBeat);
+      //       var noteOff = new NoteOff(noteOn);
+      //       noteOff.sendAtBeat(nextBeat + noteLength);
+      //     }
+      //   }
+      // }
     }
 
   }
@@ -249,10 +272,10 @@ function ProcessMIDI() {
 
 
 var BaseParameters = [
-  { name:"Stop on keys release", type:"checkbox", defaultValue:1 },
+  { name: "Stop on keys release", type:"checkbox", defaultValue:1 },
   { name: "Start key pitch", type: "lin", minValue: -24, maxValue: 120, numberOfSteps: 144, defaultValue: 24 },
-  { name:"Pattern length", type:"lin", minValue:2, maxValue:16, numberOfSteps:14, defaultValue:4 },
-  { name:"Items per bit", type:"menu", valueStrings: itemsPerBeatValues.map(t => t.toString()), defaultValue: 3 },
+  { name: "Pattern length", type:"lin", minValue:2, maxValue:16, numberOfSteps:14, defaultValue:4 },
+  { name :"Items per bit", type:"menu", valueStrings: itemsPerBeatValues.map(t => t.toString()), defaultValue: 3 },
 ];
 
 // TODO: Normalized chord index. One pattern can be used for differntly transposed chords.
@@ -261,7 +284,7 @@ var KeyParamters = [
   { name: "Type", type:"menu", valueStrings: ["Number", "Pitch"], defaultValue: 0 }, 
   { name: "Note length, steps", type:"lin", minValue:1, maxValue:16, numberOfSteps:15, defaultValue:1 },
   { name: "Note number", type: "lin", minValue: 0, maxValue: 9, numberOfSteps: 9, defaultValue: 0 }, // 9 - for whole chord
-  { name: "Note pitch", type: "lin", minValue: -24, maxValue: 120, numberOfSteps: 144, defaultValue: 24 },
+  { name: "Note pitch", type: "lin", minValue: 0, maxValue: 120, numberOfSteps: 120, defaultValue: 0 },
 ];
 
 
@@ -271,6 +294,10 @@ for (let i = 0; i < 20; i++) {
 }
 
 // UI
+
+function stepNoteParamName(paramName, groupIndex) {
+  return "(" + (groupIndex+1) + ") " + paramName;
+}
 
 var paramsChanged = false;
 
@@ -283,7 +310,7 @@ function Idle () {
 
       var noteParameters = KeyParamters.map(a => Object.assign({}, a));
       noteParameters.forEach(p => {
-        p.name = "(" + (i+1) + ") " + p.name;
+        p.name = stepNoteParamName(p.name, i);
       });
 
       PluginParameters = PluginParameters.concat(noteParameters);
@@ -298,15 +325,30 @@ function Idle () {
 }
 
 function ParameterChanged(param, value) {
-  Trace('P changed ' + param + " v " + value + " bc " + BaseParameters.length);
+  // Trace('P changed ' + param + " v " + value);
 	if (param >= BaseParameters.length) {
     var relativeIndex = param - BaseParameters.length;
     var groupIndex = Math.floor((relativeIndex)/(KeyParamters.length + 1));
     var keyParameterIndex = relativeIndex - groupIndex * (KeyParamters.length + 1);
-    Trace('key param changed. group: ' + groupIndex + ' key = ' + keyParameterIndex + " stored type " + stepNotes[groupIndex] + " p value" + value + " k p " + keyParameterIndex);
     if (keyParameterIndex == 1 && stepNotes[groupIndex] != value) {
       stepNotes[groupIndex] = value;
       paramsChanged = true;
+    }
+
+    patternData = {};
+    for (noteIndex = 0; noteIndex < stepNotes.length; noteIndex++) {
+      var type = GetParameter(stepNoteParamName("Type", noteIndex));
+      var num = GetParameter(stepNoteParamName("Note number", noteIndex));
+      var pitch = GetParameter(stepNoteParamName("Note pitch", noteIndex));
+      if ((type == "Number" && num > 0) || (type == "Pitch" && pitch > 0)) {
+        var patternStepData = patternData['step' + noteIndex] || [];
+        patternStepData.push({
+          type: "Number",
+          num: num,
+          pitch: pitch,
+          length: GetParameter(stepNoteParamName("Note length", noteIndex)),
+        });
+      }
     }
   }
 
