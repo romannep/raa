@@ -80,15 +80,17 @@ var drumIntro = false;
 
 function HandleMIDI(event) {
   if (event instanceof NoteOn) {
-
+    Trace("Pushed key with pitch " + event.pitch);
     var isAccompaniment = GetParameter('Stop on keys release') == 0;
     if (isAccompaniment) {
       if (event.pitch == GetParameter('Start key pitch')) {
         if (!started) {
           started = true;
           start = event.beatPos;
+          Trace("Started acc by key");
         } else {
           started = false;
+          Trace("Stopped acc by key");
         }
       }
     } else {
@@ -169,11 +171,13 @@ function ProcessMIDI() {
       started = false;
     }
 
+    var patternLength = GetParameter("Pattern length");
+
     var nextStepInt = passedStepsInt + 1;
     var nextBeat = shiftedStart + nextStepInt / itemsPerBeat;
     // var drumIntroPassedbeats = isAccompaniment && !drumIntro && !!drumPatterns[drumStartedPattern].intro ? drumPatterns[drumStartedPattern].intro.length : 0;
     // var nextStepIndex = (nextStepInt - drumIntroPassedbeats) % pattern.length;
-    var nextStepIndex = nextStepInt % pattern.length;
+    var nextStepIndex = nextStepInt % patternLength;
 
     if (blockStart <= nextBeat && nextBeat < blockEnd) {
       // Trace("passedStepsInt=" + passedStepsInt + " nextStepIndex=" + nextStepIndex + " bs=" + blockStart + " start=" + start + "drum intro" + drumIntro);
@@ -187,7 +191,7 @@ function ProcessMIDI() {
         //   }
         // }  
       } else {
-        if (nextStepIndex == pattern.length - 1) {
+        if (nextStepIndex == patternLength - 1) {
           started = false;
           checkAndStart(nextBeat + noteLength - startShift);
         }  
@@ -282,6 +286,7 @@ var BaseParameters = [
 var KeyParamters = [
   { name: 'Note', type: "text" },
   { name: "Type", type:"menu", valueStrings: ["Number", "Pitch"], defaultValue: 0 }, 
+  { name: "Step", type:"lin", minValue:1, maxValue:16, numberOfSteps:15, defaultValue: 0 },
   { name: "Note length, steps", type:"lin", minValue:1, maxValue:16, numberOfSteps:15, defaultValue:1 },
   { name: "Note number", type: "lin", minValue: 0, maxValue: 9, numberOfSteps: 9, defaultValue: 0 }, // 9 - for whole chord
   { name: "Note pitch", type: "lin", minValue: 0, maxValue: 120, numberOfSteps: 120, defaultValue: 0 },
@@ -299,64 +304,85 @@ function stepNoteParamName(paramName, groupIndex) {
   return "(" + (groupIndex+1) + ") " + paramName;
 }
 
-var paramsChanged = false;
+// var paramsChanged = false;
 
-function Idle () {
+// function Idle () {
 
-  if (paramsChanged) {
-    PluginParameters = [].concat(BaseParameters);
+//   if (paramsChanged) {
+//     PluginParameters = [].concat(BaseParameters);
 
-    for (var i = 0; i < stepNotes.length; i++) {
+//     for (var i = 0; i < stepNotes.length; i++) {
 
-      var noteParameters = KeyParamters.map(a => Object.assign({}, a));
-      noteParameters.forEach(p => {
-        p.name = stepNoteParamName(p.name, i);
-      });
+//       var noteParameters = KeyParamters.map(a => Object.assign({}, a));
+//       noteParameters.forEach(p => {
+//         p.name = stepNoteParamName(p.name, i);
+//       });
 
-      PluginParameters = PluginParameters.concat(noteParameters);
+//       PluginParameters = PluginParameters.concat(noteParameters);
+//     }
+
+//     Trace('Do update parameters');
+//     UpdatePluginParameters();
+
+//     paramsChanged = false;
+//   }
+
+// }
+
+function fillPatternData() {
+  patternData = {};
+  for (noteIndex = 0; noteIndex < stepNotes.length; noteIndex++) {
+    var type = GetParameter(stepNoteParamName("Type", noteIndex));
+    var num = GetParameter(stepNoteParamName("Note number", noteIndex));
+    var pitch = GetParameter(stepNoteParamName("Note pitch", noteIndex));
+    var step = GetParameter(stepNoteParamName("Step", noteIndex));
+    
+    if (noteIndex < 5) {
+      Trace("Note " + noteIndex + " type " + type + " num " + num + " pitch " + pitch);
     }
-
-    Trace('Do update parameters');
-    UpdatePluginParameters();
-
-    paramsChanged = false;
+    if ((type == 0 && num > 0) || (type == 1 && pitch > 0)) {
+      Trace("Do add to step " + step);
+      var patternStepData = patternData['step' + step] || [];
+      patternStepData.push({
+        type: type,
+        num: num,
+        pitch: pitch,
+        length: GetParameter(stepNoteParamName("Note length, steps", noteIndex)),
+      });
+    }
+    patternData['step' + step] = patternStepData;
   }
-
+  Trace('Pattern data ' + Object.keys(patternData).map((d, index) => '' + d + ' ' + (patternData[d] ? patternData[d].length : 0) + ';'));
 }
 
 function ParameterChanged(param, value) {
   // Trace('P changed ' + param + " v " + value);
-	if (param >= BaseParameters.length) {
-    var relativeIndex = param - BaseParameters.length;
-    var groupIndex = Math.floor((relativeIndex)/(KeyParamters.length + 1));
-    var keyParameterIndex = relativeIndex - groupIndex * (KeyParamters.length + 1);
-    if (keyParameterIndex == 1 && stepNotes[groupIndex] != value) {
-      stepNotes[groupIndex] = value;
-      paramsChanged = true;
-    }
+	// if (param >= BaseParameters.length) {
+  //   var relativeIndex = param - BaseParameters.length;
+  //   var groupIndex = Math.floor((relativeIndex)/(KeyParamters.length + 1));
+  //   var keyParameterIndex = relativeIndex - groupIndex * (KeyParamters.length + 1);
+  //   if (keyParameterIndex == 1 && stepNotes[groupIndex] != value) {
+  //     stepNotes[groupIndex] = value;
+  //     paramsChanged = true;
+  //   }
 
-    patternData = {};
-    for (noteIndex = 0; noteIndex < stepNotes.length; noteIndex++) {
-      var type = GetParameter(stepNoteParamName("Type", noteIndex));
-      var num = GetParameter(stepNoteParamName("Note number", noteIndex));
-      var pitch = GetParameter(stepNoteParamName("Note pitch", noteIndex));
-      if ((type == "Number" && num > 0) || (type == "Pitch" && pitch > 0)) {
-        var patternStepData = patternData['step' + noteIndex] || [];
-        patternStepData.push({
-          type: "Number",
-          num: num,
-          pitch: pitch,
-          length: GetParameter(stepNoteParamName("Note length", noteIndex)),
-        });
-      }
-    }
-  }
+  //   // fillPatternData();
+  // }
+  fillPatternData();
 
 }
 
 var PluginParameters = [].concat(BaseParameters);
-paramsChanged = true;
-Idle();
+for (var i = 0; i < stepNotes.length; i++) {
+
+  var noteParameters = KeyParamters.map(a => Object.assign({}, a));
+  noteParameters.forEach(p => {
+    p.name = stepNoteParamName(p.name, i);
+  });
+
+  PluginParameters = PluginParameters.concat(noteParameters);
+}
+
     // { name:"Stop on keys release", type:"checkbox", defaultValue:1 },
     // { name:"Pattern length", type:"lin",
     //   minValue:2, maxValue:16, numberOfSteps:14, defaultValue:4 },
