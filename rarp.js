@@ -131,7 +131,7 @@ function ProcessMIDI() {
     var passedStepsInt = Math.floor(passedBeats * itemsPerBeat);
 
     if (passedStepsInt < -1) {
-      started = false;
+      passedStepsInt = 0;
     }
 
     var patternLength = GetParameter("Pattern length");
@@ -145,7 +145,7 @@ function ProcessMIDI() {
       if (!isAccompaniment) {
         if (nextStepIndex == patternLength - 1) {
           started = false;
-          checkAndStart(nextBeat + noteLength - startShift);
+          checkAndStart(nextBeat + noteLength);
         }  
       }
       
