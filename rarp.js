@@ -18,7 +18,6 @@ var activeNotes = []; // Currently pressed keys
 var playingNotes = [];// To play when hand not holds keys
 var started = false;
 var start = 0; // beat position when performance started
-var zeroStepPlayed = false; // Key push event can come when block already processed
 var notesCountToStart = 3;
 
 function getNoteIndexAndShift(patternValue) { // 0-7 - note index, -1 - chord
@@ -44,7 +43,6 @@ function getNoteIndexAndShift(patternValue) { // 0-7 - note index, -1 - chord
 function checkAndStart(beatPos) {
   if (activeNotes.length >= notesCountToStart && !started) {
     started = true;
-    zeroStepPlayed = false;
     start = beatPos;
     playingNotes = activeNotes.slice(0); 
     // Trace('started set true s=' + start);
@@ -132,18 +130,16 @@ function ProcessMIDI() {
     var passedBeats = blockStart - start;
     var passedStepsInt = Math.floor(passedBeats * itemsPerBeat);
 
-    if (passedStepsInt < -1 || !zeroStepPlayed) {
-      passedStepsInt = 0;
-    }
-
     var patternLength = GetParameter("Pattern length");
 
     var nextStepInt = passedStepsInt + 1;
     var nextBeat = start + nextStepInt / itemsPerBeat;
     var nextStepIndex = nextStepInt % patternLength;
+    if (Math.abs(passedBeats) < delta) { // Initial start
+      nextStepIndex = 0;
+    }
 
-    if ((blockStart <= nextBeat && nextBeat < blockEnd) || !zeroStepPlayed) {
-      zeroStepPlayed = true;
+    if ((blockStart <= nextBeat && nextBeat < blockEnd) || nextStepIndex == 0) {
       // Trace("passedStepsInt=" + passedStepsInt + " nextStepIndex=" + nextStepIndex + " bs=" + blockStart + " start=" + start + "drum intro" + drumIntro);
       if (!isAccompaniment) {
         if (nextStepIndex == patternLength - 1) {
