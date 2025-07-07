@@ -122,7 +122,6 @@ function ProcessMIDI() {
 
     var blockStart = musicInfo.blockStartBeat;
     var blockEnd = musicInfo.blockEndBeat;
-    var delta = blockEnd - blockStart;
 
     var itemsPerBeat = itemsPerBeatValues[GetParameter("Items per bit")];
 	  var noteLength = 1 / itemsPerBeat;
@@ -130,16 +129,19 @@ function ProcessMIDI() {
     var passedBeats = blockStart - start;
     var passedStepsInt = Math.floor(passedBeats * itemsPerBeat);
 
+    var delta = blockEnd - blockStart;
+    if (Math.abs(passedBeats) < delta) { // Initial start
+      passedStepsInt = -1;
+    }
+
+
     var patternLength = GetParameter("Pattern length");
 
     var nextStepInt = passedStepsInt + 1;
     var nextBeat = start + nextStepInt / itemsPerBeat;
     var nextStepIndex = nextStepInt % patternLength;
-    if (Math.abs(passedBeats) < delta) { // Initial start
-      nextStepIndex = 0;
-    }
 
-    if ((blockStart <= nextBeat && nextBeat < blockEnd) || nextStepIndex == 0) {
+    if ((blockStart <= nextBeat && nextBeat < blockEnd)) {
       // Trace("passedStepsInt=" + passedStepsInt + " nextStepIndex=" + nextStepIndex + " bs=" + blockStart + " start=" + start + "drum intro" + drumIntro);
       if (!isAccompaniment) {
         if (nextStepIndex == patternLength - 1) {
@@ -161,11 +163,10 @@ function ProcessMIDI() {
           } else { //number
             var indexAndShift = getNoteIndexAndShift(noteToPlay.num);
             if (indexAndShift.index != -1) {
-              var noteOn = new NoteOn(playingNotes[indexAndShift.index]);
-              noteOn.pitch = noteOn.pitch + indexAndShift.shift;
+              noteOn.pitch = playingNotes[indexAndShift.index].pitch + indexAndShift.shift;
             }
           }
-          noteOn.sendAtBeat(nextBeat + (nextBeat >= blockEnd ? delta : 0));
+          noteOn.sendAtBeat(nextBeat);
           var noteOff = new NoteOff(noteOn);
           noteOff.sendAtBeat(nextBeat + noteLength * noteToPlay.length);
         }
