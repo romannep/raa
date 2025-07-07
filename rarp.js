@@ -132,7 +132,7 @@ function ProcessMIDI() {
     var passedBeats = blockStart - start;
     var passedStepsInt = Math.floor(passedBeats * itemsPerBeat);
 
-    if (passedStepsInt < -1) {
+    if (passedStepsInt < -1 || !zeroStepPlayed) {
       passedStepsInt = 0;
     }
 
