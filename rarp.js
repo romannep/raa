@@ -164,6 +164,7 @@ function ProcessMIDI() {
             var indexAndShift = getNoteIndexAndShift(noteToPlay.num);
             if (indexAndShift.index != -1) {
               noteOn.pitch = playingNotes[indexAndShift.index].pitch + indexAndShift.shift;
+              noteOn.isRealtime = true; // I have no idea why it is needed there
             }
           }
           noteOn.sendAtBeat(nextBeat);
