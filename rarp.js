@@ -156,20 +156,38 @@ function ProcessMIDI() {
         for (var i = 0; i < notesToPlay.length; i++) {
           var noteToPlay = notesToPlay[i];
           Trace('will play ' + JSON.stringify(noteToPlay));
-          var noteOn = new NoteOn();
-          noteOn.velocity = 120;
+          var notesToSend = [];
           if (noteToPlay.type == 1) { // pitch
+            var noteOn = new NoteOn();
+            noteOn.velocity = 120;
             noteOn.pitch = noteToPlay.pitch;
+            notesToSend.push(noteOn);
           } else { //number
-            var indexAndShift = getNoteIndexAndShift(noteToPlay.num);
-            if (indexAndShift.index != -1) {
-              noteOn.pitch = playingNotes[indexAndShift.index].pitch + indexAndShift.shift;
-              noteOn.isRealtime = true; // I have no idea why it is needed there
+            if (noteToPlay.num == 9) {
+              playingNotes.forEach((note) => {
+                var noteOn = new NoteOn();
+                noteOn.velocity = 120;
+                noteOn.pitch = note.pitch;
+                noteOn.isRealtime = true;
+                notesToSend.push(noteOn);
+              });
+            } else {
+              var indexAndShift = getNoteIndexAndShift(noteToPlay.num);
+              if (indexAndShift.index != -1) {
+                var noteOn = new NoteOn();
+                noteOn.velocity = 120;
+                noteOn.pitch = playingNotes[indexAndShift.index].pitch + indexAndShift.shift;
+                noteOn.isRealtime = true;
+                notesToSend.push(noteOn);
+              }
+
             }
           }
-          noteOn.sendAtBeat(nextBeat);
-          var noteOff = new NoteOff(noteOn);
-          noteOff.sendAtBeat(nextBeat + noteLength * noteToPlay.length);
+          notesToSend.forEach((noteOn) => {
+            noteOn.sendAtBeat(nextBeat);
+            var noteOff = new NoteOff(noteOn);
+            noteOff.sendAtBeat(nextBeat + noteLength * noteToPlay.length);
+          });
         }
 
       }
@@ -210,31 +228,6 @@ function stepNoteParamName(paramName, groupIndex) {
   return "(" + (groupIndex+1) + ") " + paramName;
 }
 
-// var paramsChanged = false;
-
-// function Idle () {
-
-//   if (paramsChanged) {
-//     PluginParameters = [].concat(BaseParameters);
-
-//     for (var i = 0; i < stepNotes.length; i++) {
-
-//       var noteParameters = KeyParamters.map(a => Object.assign({}, a));
-//       noteParameters.forEach(p => {
-//         p.name = stepNoteParamName(p.name, i);
-//       });
-
-//       PluginParameters = PluginParameters.concat(noteParameters);
-//     }
-
-//     Trace('Do update parameters');
-//     UpdatePluginParameters();
-
-//     paramsChanged = false;
-//   }
-
-// }
-
 function fillPatternData() {
   patternData = {};
   for (noteIndex = 0; noteIndex < stepNotes.length; noteIndex++) {
@@ -273,17 +266,3 @@ for (var i = 0; i < stepNotes.length; i++) {
 }
 fillPatternData();
 
-    // { name:"Stop on keys release", type:"checkbox", defaultValue:1 },
-    // { name:"Pattern length", type:"lin",
-    //   minValue:2, maxValue:16, numberOfSteps:14, defaultValue:4 },
-    // { name: "Add", type: "momentary" },
-    // { name: "Remove last", type: "momentary" },
-  
-    // { name: "Pattern", type:"menu", valueStrings: patternValues.map(p => p.join(",")), defaultValue: 0 },
-    // { name:"Items per bit", type:"menu", valueStrings: itemsPerBeatValues.map(t => t.toString()), defaultValue: 3 },
-    // { name:"Note length, %", type:"lin",
-    //   minValue:10, maxValue:300, numberOfSteps:29, defaultValue:100 },
-    // { name:"Beat shift, %", type:"lin",
-    //   minValue:-15, maxValue: 15, numberOfSteps:30, defaultValue:0 },
-    // { name: "Drum", type: "checkbox", defaultValue: 0 },
-    // { name: "Drum Pattern", type:"menu", valueStrings: drumPatterns.map(p => p.pattern.join(",")), defaultValue: 0 },
