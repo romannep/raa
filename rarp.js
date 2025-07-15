@@ -51,7 +51,7 @@ function HandleMIDI(event) {
         if (activeNotes[2].pitch - activeNotes[1].pitch > 4) {
           activeNotes.unshift(activeNotes.pop());
         }
-        if (activeNotes[0].pitch - activeNotes[1].pitch > 4) {
+        if (activeNotes[1].pitch - activeNotes[0].pitch > 4) {
           activeNotes.push(activeNotes.shift());
         }
 
