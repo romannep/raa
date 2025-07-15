@@ -1,12 +1,32 @@
-# R's Auto Accompaniment for Mainstage 3
+# Roman's Arpeggiator and Auto Accompaniment for Mainstage 3
 
-Auto Accompaniment implementation for keys for Mainstage
+Arpeggiator and Auto Accompaniment for keys for Mainstage
 
-## Into
+## Arpeggiator
 
-Script designed to create patches to play cover versions of songs or music compositions.
+- Starts, when you press 3+ keys
+- Plays pattern
+- Stops, if keys released
 
-Initially it assumes:
-- all instruments managed by this script are placed in layers with exact start and end
-- Play should be on (started)
-- Key press starts songs: internal 'timer'. The start of beat's intervals is calculated from this moment.
+You specify:
+- note number in chord to play
+   - notes sorted by pitch or by chord
+- `9` to play whole chord
+- `13` - `20` - note number in chord transposed +octave (`13` for 1, `14` for 2, and so on)
+- `-11` - `-4` - note number in chord transposed -octave (`-11` for 1, `-10` for 2, and so on)
+
+## Auto accompaniment
+
+- Turns on/off by Mainstage in play mode button
+- Starts by any key pressed in specified pitch range
+- Repeat pattern endless
+- Stops by key with specified pitch
+
+Note specification is the same.
+
+## Pitched Auto accompaniment
+
+You specify exact pitch for every note
+
+
+

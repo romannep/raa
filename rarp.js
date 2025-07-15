@@ -1,15 +1,3 @@
-//-----------------------------------------------------------------------------
-// Roman's Arpeggiator//-----------------------------------------------------------------------------
-/*
-	Patterns
-	- 1-8 - num of note in chord from bottom to top
-	- 9 - whole chord
-	- 13 - 20 - num of note in chord from bottom to top transposed +octave
-	- -11 - -4 - num of note in chord from bottom to top transposed -octave
-	- 0 - pause
-	- 21+ - exact pitch - C in C1 == 24
-	- -(pitch*12 + note) - note in chord from bottom to top transposed down to pitch
-*/
 
 var NeedsTimingInfo = true;
 
@@ -33,10 +21,10 @@ function getNoteIndexAndShift(patternValue) { // 0-7 - note index, -1 - chord
   if (patternValue > -12 && patternValue < -3) {
     return { index: patternValue + 12, shift: -12 };
   }
-  if (patternValue < -11) {
-    var pitch = Math.ceil(patternValue / 12);
-    return { index: 0 - (patternValue % 12) -  1, shift: pitch };
-  }
+  // if (patternValue < -11) {
+  //   var pitch = Math.ceil(patternValue / 12);
+  //   return { index: 0 - (patternValue % 12) -  1, shift: pitch };
+  // }
   return { index: -1, shift: 0 };
 }
 
@@ -45,7 +33,6 @@ function checkAndStart(beatPos) {
     started = true;
     start = beatPos;
     playingNotes = activeNotes.slice(0); 
-    // Trace('started set true s=' + start);
   }
 }
 
@@ -54,26 +41,25 @@ var drumIntro = false;
 function HandleMIDI(event) {
   if (event instanceof NoteOn) {
     Trace("Pushed key with pitch " + event.pitch);
-    var isAccompaniment = GetParameter('Stop on keys release') == 0;
-    if (isAccompaniment) {
-      if (event.pitch == GetParameter('Start key pitch')) {
-        if (!started) {
-          started = true;
-          start = event.beatPos;
-          Trace("Started acc by key");
-        } else {
-          started = false;
-          Trace("Stopped acc by key");
+    activeNotes.push(new NoteOn(event));
+    
+    var sortBy = GetParameter("Sort by");
+    if (activeNotes.length > 2) {
+      if (sortBy == 1) {
+        activeNotes.sort(sortByPitchAscending);
+        
+        if (activeNotes[2].pitch - activeNotes[1].pitch > 4) {
+          activeNotes.unshift(activeNotes.pop());
         }
-      }
-    } else {
-      activeNotes.push(new NoteOn(event));
-      
-      if (activeNotes.length > 1) {
+        if (activeNotes[0].pitch - activeNotes[1].pitch > 4) {
+          activeNotes.push(activeNotes.shift());
+        }
+
+      } else {
         activeNotes.sort(sortByPitchAscending);
       }
-      checkAndStart(event.beatPos);
     }
+    checkAndStart(event.beatPos);
     // Trace("noteOn pitch=" + event.pitch + " now active: " + activeNotes.length + " started=" + started );
   }
 
@@ -118,7 +104,6 @@ function ProcessMIDI() {
   var musicInfo = GetTimingInfo();
 
   if (started) {
-    var isAccompaniment = GetParameter('Stop on keys release') == 0;
 
     var blockStart = musicInfo.blockStartBeat;
     var blockEnd = musicInfo.blockEndBeat;
@@ -143,12 +128,10 @@ function ProcessMIDI() {
 
     if ((blockStart <= nextBeat && nextBeat < blockEnd)) {
       // Trace("passedStepsInt=" + passedStepsInt + " nextStepIndex=" + nextStepIndex + " bs=" + blockStart + " start=" + start + "drum intro" + drumIntro);
-      if (!isAccompaniment) {
-        if (nextStepIndex == patternLength - 1) {
-          started = false;
-          checkAndStart(nextBeat + noteLength);
-        }  
-      }
+      if (nextStepIndex == patternLength - 1) {
+        started = false;
+        checkAndStart(nextBeat + noteLength);
+      }  
       
       var notesToPlay = patternData['step' + (nextStepIndex + 1)];
       Trace('index ' + nextStepIndex + ' step ' + 'step' + (nextStepIndex + 1) + ' notes ' + JSON.stringify(notesToPlay) );
@@ -157,33 +140,27 @@ function ProcessMIDI() {
           var noteToPlay = notesToPlay[i];
           Trace('will play ' + JSON.stringify(noteToPlay));
           var notesToSend = [];
-          if (noteToPlay.type == 1) { // pitch
-            var noteOn = new NoteOn();
-            noteOn.velocity = 120;
-            noteOn.pitch = noteToPlay.pitch;
-            notesToSend.push(noteOn);
-          } else { //number
-            if (noteToPlay.num == 9) {
-              playingNotes.forEach((note) => {
-                var noteOn = new NoteOn();
-                noteOn.velocity = 120;
-                noteOn.pitch = note.pitch;
-                noteOn.isRealtime = true;
-                notesToSend.push(noteOn);
-              });
-            } else {
-              var indexAndShift = getNoteIndexAndShift(noteToPlay.num);
-              if (indexAndShift.index != -1) {
-                var noteOn = new NoteOn();
-                noteOn.velocity = 120;
-                noteOn.pitch = playingNotes[indexAndShift.index].pitch + indexAndShift.shift;
-                noteOn.isRealtime = true;
-                notesToSend.push(noteOn);
-              }
 
+          if (noteToPlay.num == 9) {
+            playingNotes.forEach((note) => {
+              var noteOn = new NoteOn();
+              noteOn.velocity = 120;
+              noteOn.pitch = note.pitch;
+              noteOn.isRealtime = true;
+              notesToSend.push(noteOn);
+            });
+          } else {
+            var indexAndShift = getNoteIndexAndShift(noteToPlay.num);
+            if (indexAndShift.index != -1) {
+              var noteOn = new NoteOn();
+              noteOn.velocity = 120;
+              noteOn.pitch = playingNotes[indexAndShift.index].pitch + indexAndShift.shift;
+              noteOn.isRealtime = true;
+              notesToSend.push(noteOn);
             }
           }
-          notesToSend.forEach((noteOn) => {
+
+            notesToSend.forEach((noteOn) => {
             noteOn.sendAtBeat(nextBeat);
             var noteOff = new NoteOff(noteOn);
             noteOff.sendAtBeat(nextBeat + noteLength * noteToPlay.length);
@@ -200,8 +177,7 @@ function ProcessMIDI() {
 
 
 var BaseParameters = [
-  { name: "Stop on keys release", type:"checkbox", defaultValue:1 },
-  { name: "Start key pitch", type: "lin", minValue: -24, maxValue: 120, numberOfSteps: 144, defaultValue: 24 },
+  { name: "Sort by", type:"menu", valueStrings: ["Pitch", "Chord"], defaultValue: 0 }, 
   { name: "Pattern length", type:"lin", minValue:2, maxValue:16, numberOfSteps:14, defaultValue:4 },
   { name :"Items per bit", type:"menu", valueStrings: itemsPerBeatValues.map(t => t.toString()), defaultValue: 3 },
 ];
@@ -209,11 +185,9 @@ var BaseParameters = [
 // TODO: Normalized chord index. One pattern can be used for differntly transposed chords.
 var KeyParamters = [
   { name: 'Note', type: "text" },
-  { name: "Type", type:"menu", valueStrings: ["Number", "Pitch"], defaultValue: 0 }, 
   { name: "Step", type:"lin", minValue:0, maxValue:16, numberOfSteps:16, defaultValue: 0 },
   { name: "Note length, steps", type:"lin", minValue:1, maxValue:16, numberOfSteps:15, defaultValue:1 },
   { name: "Note number", type: "lin", minValue: 0, maxValue: 9, numberOfSteps: 9, defaultValue: 0 }, // 9 - for whole chord
-  { name: "Note pitch", type: "lin", minValue: 0, maxValue: 120, numberOfSteps: 120, defaultValue: 0 },
 ];
 
 
@@ -231,17 +205,13 @@ function stepNoteParamName(paramName, groupIndex) {
 function fillPatternData() {
   patternData = {};
   for (noteIndex = 0; noteIndex < stepNotes.length; noteIndex++) {
-    var type = GetParameter(stepNoteParamName("Type", noteIndex));
     var num = GetParameter(stepNoteParamName("Note number", noteIndex));
-    var pitch = GetParameter(stepNoteParamName("Note pitch", noteIndex));
     var step = GetParameter(stepNoteParamName("Step", noteIndex));
     
     if (step > 0) {
       var patternStepData = patternData['step' + step] || [];
       patternStepData.push({
-        type: type,
         num: num,
-        pitch: pitch,
         length: GetParameter(stepNoteParamName("Note length, steps", noteIndex)),
       });
       patternData['step' + step] = patternStepData;
