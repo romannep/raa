@@ -187,7 +187,7 @@ var KeyParamters = [
   { name: 'Note', type: "text" },
   { name: "Step", type:"lin", minValue:0, maxValue:16, numberOfSteps:16, defaultValue: 0 },
   { name: "Note length, steps", type:"lin", minValue:1, maxValue:16, numberOfSteps:15, defaultValue:1 },
-  { name: "Note number", type: "lin", minValue: 0, maxValue: 9, numberOfSteps: 9, defaultValue: 0 }, // 9 - for whole chord
+  { name: "Note number", type: "lin", minValue: -11, maxValue: 9, numberOfSteps: 20, defaultValue: 0 }, // 9 - for whole chord
 ];
 
 
