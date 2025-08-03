@@ -9,8 +9,8 @@ var start = 0; // beat position when performance started
 var notesCountToStart = 3;
 
 function getNoteIndexAndShift(patternValue) { // 0-7 - note index, -1 - chord
-  if (patternValue > 0 && patternValue < 9) {
-    return { index: patternValue -1, shift: 0 };
+  if (patternValue > -1 && patternValue < 10) {
+    return { index: patternValue, shift: 0 };
   }
   if (patternValue == 9) {
     return { index: -1, shift: 0 };
@@ -151,10 +151,11 @@ function ProcessMIDI() {
             });
           } else {
             var indexAndShift = getNoteIndexAndShift(noteToPlay.num);
+            Trace("i s " + indexAndShift.index + " sh " + indexAndShift.shift + " pN=" + playingNotes.map(n => n.pitch).join(','));
             if (indexAndShift.index != -1) {
               var noteOn = new NoteOn();
               noteOn.velocity = 120;
-              noteOn.pitch = playingNotes[indexAndShift.index].pitch + indexAndShift.shift;
+              noteOn.pitch = playingNotes[indexAndShift.index - 1].pitch + indexAndShift.shift;
               noteOn.isRealtime = true;
               notesToSend.push(noteOn);
             }
@@ -235,4 +236,3 @@ for (var i = 0; i < stepNotes.length; i++) {
   PluginParameters = PluginParameters.concat(noteParameters);
 }
 fillPatternData();
-
