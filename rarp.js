@@ -28,13 +28,13 @@ function getNoteIndexAndShift(patternValue) { // 0-7 - note index, -1 - chord
   return { index: -1, shift: 0 };
 }
 
-function checkAndStart(beatPos) {
-  if (activeNotes.length >= notesCountToStart && !started) {
-    started = true;
-    start = beatPos;
-    playingNotes = activeNotes.slice(0); 
-  }
-}
+// function checkAndStart(beatPos) {
+//   if (activeNotes.length >= notesCountToStart && !started) {
+//     started = true;
+//     start = beatPos;
+//     playingNotes = activeNotes.slice(0); 
+//   }
+// }
 
 var drumIntro = false;
 
@@ -59,7 +59,14 @@ function HandleMIDI(event) {
         activeNotes.sort(sortByPitchAscending);
       }
     }
-    checkAndStart(event.beatPos);
+
+    if (activeNotes.length >= notesCountToStart && !started) {
+      started = true;
+      start = event.beatPos;
+      playingNotes = activeNotes.slice(0); 
+    }
+
+    // checkAndStart(event.beatPos);
     // Trace("noteOn pitch=" + event.pitch + " now active: " + activeNotes.length + " started=" + started );
   }
 
@@ -130,7 +137,7 @@ function ProcessMIDI() {
       // Trace("passedStepsInt=" + passedStepsInt + " nextStepIndex=" + nextStepIndex + " bs=" + blockStart + " start=" + start + "drum intro" + drumIntro);
       if (nextStepIndex == patternLength - 1) {
         started = false;
-        checkAndStart(nextBeat + noteLength);
+        // checkAndStart(nextBeat + noteLength);
       }  
       
       var notesToPlay = patternData['step' + (nextStepIndex + 1)];
