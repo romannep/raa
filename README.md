@@ -2,11 +2,13 @@
 
 Arpeggiator and Auto Accompaniment for keys for Mainstage
 
-## Arpeggiator
+## Arpeggiator (rarp.js)
 
-- Starts, when you press 3+ keys
-- Plays pattern
-- Stops, if keys released
+- Starts, when pressed 3+ keys
+- Plays entire pattern, do not stop if keys released
+- Stops after pattern played one
+- While playing, stops when pressed another 3+ keys and starts playing new pattern
+
 
 You specify:
 - note number in chord to play
@@ -15,18 +17,22 @@ You specify:
 - `13` - `20` - note number in chord transposed +octave (`13` for 1, `14` for 2, and so on)
 - `-11` - `-4` - note number in chord transposed -octave (`-11` for 1, `-10` for 2, and so on)
 
-## Auto accompaniment
+TODO: specify how many times pattern should be repeated (1-12)
 
-- Turns on/off by Mainstage in play mode button
-- Starts by any key pressed in specified pitch range
+## Auto accompaniment [TODO]
+
+- Starts, when pressed 3+ keys
 - Repeat pattern endless
 - Stops by key with specified pitch
 
 Note specification is the same.
 
-## Pitched Auto accompaniment
+## Repeater (rrep.js)
 
-You specify exact pitch for every note
+- You specify exact pitch for every note in pattern
+- Starts by key with specified pitch
+- Repeat pattern endless
+- Stops by key with specified pitch
 
 
 
