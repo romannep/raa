@@ -1,4 +1,6 @@
 
+// release bass before end
+
 var NeedsTimingInfo = true;
 
 var itemsPerBeatValues = [0.125, 0.25, 0.5, 1, 2, 4, 8];
@@ -38,6 +40,8 @@ function getNoteIndexAndShift(patternValue) { // 0-7 - note index, -1 - chord
 
 var drumIntro = false;
 
+var released = false;
+
 function HandleMIDI(event) {
   if (event instanceof NoteOn) {
     Trace("Pushed key with pitch " + event.pitch);
@@ -60,8 +64,9 @@ function HandleMIDI(event) {
       }
     }
 
-    if (activeNotes.length >= notesCountToStart && !started) {
+    if (activeNotes.length >= notesCountToStart && (!started || released)) {
       started = true;
+      released = false;
       start = event.beatPos;
       playingNotes = activeNotes.slice(0);
 
@@ -107,6 +112,9 @@ function HandleMIDI(event) {
     var noteIndex = activeNotes.findIndex(n => n.pitch == event.pitch);
     if (noteIndex > -1) {
       activeNotes.splice(noteIndex, 1);
+    }
+    if (activeNotes.length == 0) {
+      released = true;
     }
   }
 
