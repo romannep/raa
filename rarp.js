@@ -42,12 +42,12 @@ function HandleMIDI(event) {
   if (event instanceof NoteOn) {
     Trace("Pushed key with pitch " + event.pitch);
     activeNotes.push(new NoteOn(event));
-    
+
     var sortBy = GetParameter("Sort by");
     if (activeNotes.length > 2) {
       if (sortBy == 1) {
         activeNotes.sort(sortByPitchAscending);
-        
+
         if (activeNotes[2].pitch - activeNotes[1].pitch > 4) {
           activeNotes.unshift(activeNotes.pop());
         }
@@ -55,7 +55,7 @@ function HandleMIDI(event) {
           activeNotes.push(activeNotes.shift());
         }
 
-      } else {
+      } else if (sortBy == 0) {
         activeNotes.sort(sortByPitchAscending);
       }
     }
@@ -63,7 +63,40 @@ function HandleMIDI(event) {
     if (activeNotes.length >= notesCountToStart && !started) {
       started = true;
       start = event.beatPos;
-      playingNotes = activeNotes.slice(0); 
+      playingNotes = activeNotes.slice(0);
+
+      if (playingNotes.length == 3) {
+        var sortBy = GetParameter("Sort by");
+
+        if (sortBy == 2) {
+          Trace('Sort Chord and transpose');
+          playingNotes.sort(sortByPitchAscending);
+          if (playingNotes[2].pitch - playingNotes[1].pitch > 4) {
+            const poped = new NoteOn(playingNotes.pop());
+            poped.pitch = poped.pitch - 12;
+            playingNotes.unshift(poped);
+          }
+          if (playingNotes[1].pitch - playingNotes[0].pitch > 4) {
+            const shifted = new NoteOn(playingNotes.shift());
+            shifted.pitch = shifted.pitch + 12;
+            playingNotes.push(shifted);
+          }
+        }
+
+        var n4 = new NoteOn(playingNotes[0]);
+        n4.pitch = n4.pitch + 12;
+        playingNotes.push(n4);
+
+        var n5 = new NoteOn(playingNotes[1]);
+        n5.pitch = n5.pitch + 12;
+        playingNotes.push(n5);
+
+        var n6 = new NoteOn(playingNotes[2]);
+        n6.pitch = n6.pitch + 12;
+        playingNotes.push(n6);
+      }
+      Trace('Keys:' + playingNotes.map(n => n.pitch).join(','));
+
     }
 
     // checkAndStart(event.beatPos);
@@ -80,7 +113,7 @@ function HandleMIDI(event) {
 }
 
 
-function sortByPitchAscending(a,b) {
+function sortByPitchAscending(a, b) {
   if (a.pitch < b.pitch) return -1;
   if (a.pitch > b.pitch) return 1;
   return 0;
@@ -116,8 +149,8 @@ function ProcessMIDI() {
     var blockEnd = musicInfo.blockEndBeat;
 
     var itemsPerBeat = itemsPerBeatValues[GetParameter("Items per bit")];
-	  var noteLength = 1 / itemsPerBeat;
-    
+    var noteLength = 1 / itemsPerBeat;
+
     var passedBeats = blockStart - start;
     var passedStepsInt = Math.floor(passedBeats * itemsPerBeat);
 
@@ -138,10 +171,10 @@ function ProcessMIDI() {
       if (nextStepIndex == patternLength - 1) {
         started = false;
         // checkAndStart(nextBeat + noteLength);
-      }  
-      
+      }
+
       var notesToPlay = patternData['step' + (nextStepIndex + 1)];
-      Trace('index ' + nextStepIndex + ' step ' + 'step' + (nextStepIndex + 1) + ' notes ' + JSON.stringify(notesToPlay) );
+      Trace('index ' + nextStepIndex + ' step ' + 'step' + (nextStepIndex + 1) + ' notes ' + JSON.stringify(notesToPlay));
       if (notesToPlay && notesToPlay.length) {
         for (var i = 0; i < notesToPlay.length; i++) {
           var noteToPlay = notesToPlay[i];
@@ -168,7 +201,7 @@ function ProcessMIDI() {
             }
           }
 
-            notesToSend.forEach((noteOn) => {
+          notesToSend.forEach((noteOn) => {
             noteOn.sendAtBeat(nextBeat);
             var noteOff = new NoteOff(noteOn);
             noteOff.sendAtBeat(nextBeat + noteLength * noteToPlay.length);
@@ -185,16 +218,16 @@ function ProcessMIDI() {
 
 
 var BaseParameters = [
-  { name: "Sort by", type:"menu", valueStrings: ["Pitch", "Chord"], defaultValue: 0 }, 
-  { name: "Pattern length", type:"lin", minValue:2, maxValue:16, numberOfSteps:14, defaultValue:4 },
-  { name :"Items per bit", type:"menu", valueStrings: itemsPerBeatValues.map(t => t.toString()), defaultValue: 3 },
+  { name: "Sort by", type: "menu", valueStrings: ["Pitch", "Chord", "Chord transpose"], defaultValue: 0 },
+  { name: "Pattern length", type: "lin", minValue: 2, maxValue: 16, numberOfSteps: 14, defaultValue: 4 },
+  { name: "Items per bit", type: "menu", valueStrings: itemsPerBeatValues.map(t => t.toString()), defaultValue: 3 },
 ];
 
 // TODO: Normalized chord index. One pattern can be used for differntly transposed chords.
 var KeyParamters = [
   { name: 'Note', type: "text" },
-  { name: "Step", type:"lin", minValue:0, maxValue:16, numberOfSteps:16, defaultValue: 0 },
-  { name: "Note length, steps", type:"lin", minValue:1, maxValue:16, numberOfSteps:15, defaultValue:1 },
+  { name: "Step", type: "lin", minValue: 0, maxValue: 16, numberOfSteps: 16, defaultValue: 0 },
+  { name: "Note length, steps", type: "lin", minValue: 1, maxValue: 16, numberOfSteps: 15, defaultValue: 1 },
   { name: "Note number", type: "lin", minValue: -11, maxValue: 9, numberOfSteps: 20, defaultValue: 0 }, // 9 - for whole chord
 ];
 
@@ -207,7 +240,7 @@ for (let i = 0; i < 20; i++) {
 // UI
 
 function stepNoteParamName(paramName, groupIndex) {
-  return "(" + (groupIndex+1) + ") " + paramName;
+  return "(" + (groupIndex + 1) + ") " + paramName;
 }
 
 function fillPatternData() {
@@ -215,7 +248,7 @@ function fillPatternData() {
   for (noteIndex = 0; noteIndex < stepNotes.length; noteIndex++) {
     var num = GetParameter(stepNoteParamName("Note number", noteIndex));
     var step = GetParameter(stepNoteParamName("Step", noteIndex));
-    
+
     if (step > 0) {
       var patternStepData = patternData['step' + step] || [];
       patternStepData.push({
