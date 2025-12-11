@@ -41,10 +41,32 @@ function getNoteIndexAndShift(patternValue) { // 0-7 - note index, -1 - chord
 var drumIntro = false;
 
 var released = false;
+var activated = false;
 
 function HandleMIDI(event) {
   if (event instanceof NoteOn) {
+    var activateEdge = GetParameter("Activate edge");
+    var lowEdge = GetParameter("Low edge");
+    var resetPitch = GetParameter("Reset pitch");
+
     Trace("Pushed key with pitch " + event.pitch);
+    if (activateEdge > 0) {
+      if (event.pitch == resetPitch) {
+        activated = false;
+      }
+      if (event.pitch >= activateEdge) {
+        activated = true;
+        return;
+      }
+      if (event.pitch <= lowEdge) {
+        return;
+      }
+      if (!activated) {
+        return;
+      }
+
+    }
+
     activeNotes.push(new NoteOn(event));
 
     var sortBy = GetParameter("Sort by");
@@ -77,9 +99,13 @@ function HandleMIDI(event) {
           Trace('Sort Chord and transpose');
           playingNotes.sort(sortByPitchAscending);
           if (playingNotes[2].pitch - playingNotes[1].pitch > 4) {
-            const poped = new NoteOn(playingNotes.pop());
-            poped.pitch = poped.pitch - 12;
-            playingNotes.unshift(poped);
+            var shifted = new NoteOn(playingNotes.shift());
+            shifted.pitch = shifted.pitch + 12;
+            playingNotes.push(shifted);
+
+            shifted = new NoteOn(playingNotes.shift());
+            shifted.pitch = shifted.pitch + 12;
+            playingNotes.push(shifted);
           }
           if (playingNotes[1].pitch - playingNotes[0].pitch > 4) {
             const shifted = new NoteOn(playingNotes.shift());
@@ -229,6 +255,10 @@ var BaseParameters = [
   { name: "Sort by", type: "menu", valueStrings: ["Pitch", "Chord", "Chord transpose"], defaultValue: 0 },
   { name: "Pattern length", type: "lin", minValue: 2, maxValue: 16, numberOfSteps: 14, defaultValue: 4 },
   { name: "Items per bit", type: "menu", valueStrings: itemsPerBeatValues.map(t => t.toString()), defaultValue: 3 },
+  { name: "Activate edge", type: "lin", minValue: 0, maxValue: 120, numberOfSteps: 120, defaultValue: 0 },
+  { name: "Low edge", type: "lin", minValue: 0, maxValue: 120, numberOfSteps: 120, defaultValue: 0 },
+  { name: "Reset pitch", type: "lin", minValue: 0, maxValue: 120, numberOfSteps: 120, defaultValue: 0 },
+
 ];
 
 // TODO: Normalized chord index. One pattern can be used for differntly transposed chords.
