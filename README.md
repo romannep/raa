@@ -19,13 +19,6 @@ You specify:
 
 TODO: specify how many times pattern should be repeated (1-12)
 
-## Auto accompaniment [TODO]
-
-- Starts, when pressed 3+ keys
-- Repeat pattern endless
-- Stops by key with specified pitch
-
-Note specification is the same.
 
 ## Repeater (rrep.js)
 
