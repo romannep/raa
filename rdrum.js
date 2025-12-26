@@ -8,6 +8,7 @@ var rythmValues = [
   'None',
   'Wind Of Change',
   'Mutter',
+  'Quantic',
 ];
 
 var introPatterns = [
@@ -58,6 +59,16 @@ var rythmPatterns = [
       { step: 9, length: 1, pitch: 36 },
       { step: 11, length: 1, pitch: 36 },
       { step: 13, length: 1, pitch: 40 },
+    ],
+  },
+  {
+    length: 8, // 2 tacts
+    notes: [
+      { step: 1, length: 1, pitch: 41 },
+      { step: 3, length: 1, pitch: 41 },
+      { step: 5, length: 1, pitch: 38 },
+      { step: 7, length: 1, pitch: 41 },
+      { step: 8, length: 1, pitch: 41 },
     ],
   }
 ];
