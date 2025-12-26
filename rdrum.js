@@ -13,21 +13,27 @@ var rythmValues = [
 var introPatterns = [
   {},
   {
-    length: 4,
+    length: 12,
     notes: [
-      { step: 1, length: 1, pitch: 36 },
-      { step: 2, length: 1, pitch: 36 },
-      { step: 3, length: 1, pitch: 40 },
+      { step: 1, length: 1, pitch: 40 }, 
       { step: 4, length: 1, pitch: 40 },
+      { step: 5, length: 1, pitch: 40 },
+      { step: 7, length: 1, pitch: 36 },
+      { step: 9, length: 1, pitch: 36 },
+      { step: 10, length: 1, pitch: 36 },
+      { step: 11, length: 1, pitch: 36 },
     ],
   },
   {
-    length: 4,
+    length: 8,
     notes: [
       { step: 1, length: 1, pitch: 36 },
-      { step: 2, length: 1, pitch: 36 },
-      { step: 3, length: 1, pitch: 36 },
-      { step: 4, length: 1, pitch: 36 },
+      { step: 2, length: 1, pitch: 40 },
+      { step: 3, length: 1, pitch: 40 },
+      { step: 5, length: 1, pitch: 36 },
+      { step: 6, length: 1, pitch: 40 },
+      { step: 7, length: 1, pitch: 40 },
+      { step: 8, length: 1, pitch: 40 },
     ],
   }
 ];
@@ -35,23 +41,23 @@ var introPatterns = [
 var rythmPatterns = [
   {},
   {
-    length: 8,
+    length: 16, // 2 tacts
     notes: [
       { step: 1, length: 1, pitch: 36 },
-      { step: 3, length: 1, pitch: 40 },
-      { step: 5, length: 1, pitch: 36 },
-      { step: 6, length: 1, pitch: 36 },
-      { step: 7, length: 1, pitch: 40 },
+      { step: 5, length: 1, pitch: 40 },
+      { step: 9, length: 1, pitch: 36 },
+      { step: 11, length: 1, pitch: 36 },
+      { step: 13, length: 1, pitch: 40 },
     ],
   },
   {
-    length: 8,
+    length: 16, // 2 tacts
     notes: [
       { step: 1, length: 1, pitch: 36 },
-      { step: 3, length: 1, pitch: 40 },
-      { step: 5, length: 1, pitch: 36 },
-      { step: 6, length: 1, pitch: 36 },
-      { step: 7, length: 1, pitch: 40 },
+      { step: 5, length: 1, pitch: 40 },
+      { step: 9, length: 1, pitch: 36 },
+      { step: 11, length: 1, pitch: 36 },
+      { step: 13, length: 1, pitch: 40 },
     ],
   }
 ];
