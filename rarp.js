@@ -202,7 +202,7 @@ function ProcessMIDI() {
 
     if ((blockStart <= nextBeat && nextBeat < blockEnd)) {
       // Trace("passedStepsInt=" + passedStepsInt + " nextStepIndex=" + nextStepIndex + " bs=" + blockStart + " start=" + start + "drum intro" + drumIntro);
-      if (nextStepIndex == patternLength - 1) {
+      if (nextStepIndex == patternLength - 1 && (GetParameter("Play while pressed") == 0 || released)) {
         started = false;
         // checkAndStart(nextBeat + noteLength);
       }
@@ -258,7 +258,7 @@ var BaseParameters = [
   { name: "Activate edge", type: "lin", minValue: 0, maxValue: 120, numberOfSteps: 120, defaultValue: 0 },
   { name: "Low edge", type: "lin", minValue: 0, maxValue: 120, numberOfSteps: 120, defaultValue: 0 },
   { name: "Reset pitch", type: "lin", minValue: 0, maxValue: 120, numberOfSteps: 120, defaultValue: 0 },
-
+  { name: "Play while pressed", type: "checkbox" },
 ];
 
 // TODO: Normalized chord index. One pattern can be used for differntly transposed chords.
