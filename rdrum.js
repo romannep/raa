@@ -10,11 +10,13 @@ var rythmValues = [
   'Mutter',
   'Quantic',
   'Pink',
+  'Somebody',
+  '4x4',
 ];
 
 var introPatterns = [
-  {},
-  {
+  {}, // none 
+  { // Wind of change
     length: 12,
     notes: [
       { step: 1, length: 1, pitch: 40 }, 
@@ -26,7 +28,7 @@ var introPatterns = [
       { step: 11, length: 1, pitch: 36 },
     ],
   },
-  {
+  { // Mutter
     length: 8,
     notes: [
       { step: 1, length: 1, pitch: 36 },
@@ -42,7 +44,7 @@ var introPatterns = [
 
 var rythmPatterns = [
   {},
-  {
+  { // Wind of change
     length: 16, // 2 tacts
     notes: [
       { step: 1, length: 1, pitch: 36 },
@@ -52,7 +54,7 @@ var rythmPatterns = [
       { step: 13, length: 1, pitch: 40 },
     ],
   },
-  {
+  { // Mutter
     length: 16, // 2 tacts
     notes: [
       { step: 1, length: 1, pitch: 36 },
@@ -62,7 +64,7 @@ var rythmPatterns = [
       { step: 13, length: 1, pitch: 40 },
     ],
   },
-  {
+  { //Quantic
     length: 8, // 2 tacts
     notes: [
       { step: 1, length: 1, pitch: 41 },
@@ -72,13 +74,31 @@ var rythmPatterns = [
       { step: 8, length: 1, pitch: 41 },
     ],
   },
-  {
+  { // Pink
     length: 8, // 2 tacts
     notes: [
       { step: 1, length: 1, pitch: 36 },
       { step: 3, length: 1, pitch: 40 },
       { step: 4, length: 1, pitch: 36 },
       { step: 7, length: 1, pitch: 40 },
+    ],
+  },
+  { // Somebody
+    length: 8, // 2 tacts
+    notes: [
+      { step: 1, length: 1, pitch: 36 },
+      { step: 3, length: 1, pitch: 36 },
+      { step: 5, length: 1, pitch: 36 },
+      { step: 6, length: 1, pitch: 36 },
+      { step: 7, length: 1, pitch: 36 },
+      { step: 8, length: 1, pitch: 36 },
+    ],
+  },
+  { // 4x4
+    length: 4,
+    notes: [
+      { step: 1, length: 1, pitch: 36 },
+      { step: 3, length: 1, pitch: 40 },
     ],
   }
 ];

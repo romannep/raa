@@ -45,26 +45,33 @@ var activated = false;
 
 function HandleMIDI(event) {
   if (event instanceof NoteOn) {
-    var activateEdge = GetParameter("Activate edge");
+    var activatePitch = GetParameter("Activate pitch");
     var lowEdge = GetParameter("Low edge");
+    var hiEdge = GetParameter("High edge");
     var resetPitch = GetParameter("Reset pitch");
 
     Trace("Pushed key with pitch " + event.pitch);
-    if (activateEdge > 0) {
+    if (activatePitch > 0) {
       if (event.pitch == resetPitch) {
         activated = false;
       }
-      if (event.pitch >= activateEdge) {
+      if (event.pitch == activatePitch) {
         activated = true;
-        return;
-      }
-      if (event.pitch <= lowEdge) {
         return;
       }
       if (!activated) {
         return;
       }
 
+    }
+
+    if (lowEdge > 0 && event.pitch <= lowEdge) {
+      Trace("Drop by low edge");
+      return;
+    }
+    if (hiEdge > 0 && event.pitch >= hiEdge) {
+      Trace("Drop by hi edge");
+      return;
     }
 
     activeNotes.push(new NoteOn(event));
@@ -255,8 +262,9 @@ var BaseParameters = [
   { name: "Sort by", type: "menu", valueStrings: ["Pitch", "Chord", "Chord transpose"], defaultValue: 0 },
   { name: "Pattern length", type: "lin", minValue: 2, maxValue: 16, numberOfSteps: 14, defaultValue: 4 },
   { name: "Items per bit", type: "menu", valueStrings: itemsPerBeatValues.map(t => t.toString()), defaultValue: 3 },
-  { name: "Activate edge", type: "lin", minValue: 0, maxValue: 120, numberOfSteps: 120, defaultValue: 0 },
+  { name: "Activate pitch", type: "lin", minValue: 0, maxValue: 120, numberOfSteps: 120, defaultValue: 0 },
   { name: "Low edge", type: "lin", minValue: 0, maxValue: 120, numberOfSteps: 120, defaultValue: 0 },
+  { name: "High edge", type: "lin", minValue: 0, maxValue: 120, numberOfSteps: 120, defaultValue: 0 },
   { name: "Reset pitch", type: "lin", minValue: 0, maxValue: 120, numberOfSteps: 120, defaultValue: 0 },
   { name: "Play while pressed", type: "checkbox" },
 ];
@@ -265,7 +273,7 @@ var BaseParameters = [
 var KeyParamters = [
   { name: 'Note', type: "text" },
   { name: "Step", type: "lin", minValue: 0, maxValue: 16, numberOfSteps: 16, defaultValue: 0 },
-  { name: "Note length, steps", type: "lin", minValue: 1, maxValue: 16, numberOfSteps: 15, defaultValue: 1 },
+  { name: "Note length, steps", type: "lin", minValue: 0.25, maxValue: 16, numberOfSteps: 63, defaultValue: 1 },
   { name: "Note number", type: "lin", minValue: -11, maxValue: 9, numberOfSteps: 20, defaultValue: 0 }, // 9 - for whole chord
 ];
 
