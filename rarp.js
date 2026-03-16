@@ -93,6 +93,7 @@ function HandleMIDI(event) {
       }
     }
 
+    Trace('len ' + activeNotes.length + " started " + started + " rel" + released);
     if (activeNotes.length >= notesCountToStart && (!started || released)) {
       started = true;
       released = false;
@@ -147,6 +148,7 @@ function HandleMIDI(event) {
       activeNotes.splice(noteIndex, 1);
     }
     if (activeNotes.length == 0) {
+      Trace('released');
       released = true;
     }
   }
